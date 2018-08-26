@@ -1,0 +1,49 @@
+#!/bin/bash
+# wrapper script for logging email sent via php sendmail command
+# author: ugo.viti@initzero.it
+# version: 20180429
+
+syslog="no"
+docker="no"
+thismail="/tmp/izsendmail-$(date +"%Y%m%d-%H%M%S")-$RANDOM.eml"
+
+if [ -e "/usr/sbin/sendmail.postfix" ]; then
+  sendmail="/usr/sbin/sendmail.postfix"
+elif [ -e "/usr/sbin/ssmtp" ]; then
+  sendmail="/usr/sbin/ssmtp"
+elif [ -e "/usr/bin/msmtp" ]; then
+  sendmail="/usr/bin/msmtp -C /etc/msmtp.conf"
+fi
+
+
+# remove on return code 0
+trap "rm -rf ${thismail} && exit 0 || exit 1" 0
+
+# save this mail
+cat - > $thismail
+
+#echo "DEBUG: all args: $@"
+
+#set -x
+
+[ -z "${REMOTE_ADDR}" ] && REMOTE_ADDR="null"
+[ -z "${HTTP_HOST}" ] && HTTP_HOST="null"
+
+if [ "$1" = "-q" ]
+  then
+    $sendmail $*
+  else
+    FROM="$(echo ${BASH_ARGV[0]} | sed 's/^-f//')"
+    SUBJECT="$(cat $thismail | grep ^"Subject: " | head -n1 | cut -d' ' -f2-)"
+    [ $(echo "$SUBJECT" | grep -i ^"=?utf-8?B?") ] && SUBJECT="$(echo $SUBJECT | sed -e 's/^=?utf-8?B?//i' -e 's/?=$//' | base64 -d)"
+    TO="$(cat $thismail | grep ^"To: " | head -n1 | cut -d' ' -f2-)" 
+    [ ! -z "${SCRIPT_NAME}" ] && SCRIPT="/$(basename ${SCRIPT_NAME})"
+    LOG="izsendmail: uid=<${UID}> client=<${REMOTE_ADDR}> host=<${HTTP_HOST}> script=<${PWD}${SCRIPT}> from=<${FROM}> to=<${TO}> subject=<${SUBJECT}>"
+    if [ "$syslog" = "yes" ]; then
+	logger -p mail.info $LOG
+      else
+	eval echo \"$(date +"%Y-%m-%d %H:%M:%S %Z") $LOG\" $([ "$docker" = "yes" ] && echo "> /proc/1/fd/1")
+    fi
+    $sendmail $*
+fi < $thismail 
+
