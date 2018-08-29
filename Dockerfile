@@ -142,4 +142,4 @@ EXPOSE ${APP_SSH_PORT}/tcp ${APP_FTP_PORT}/tcp ${APP_FTP_PASV_MIN}-${APP_FTP_PAS
 ENTRYPOINT ["tini", "-g", "--"]
 CMD ["/entrypoint.sh", "supervisord", "-c", "/etc/supervisord.conf"]
 
-ENV APP_VER "3.8.0-4"
+ENV APP_VER "3.8.1-5"
