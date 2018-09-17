@@ -1,8 +1,5 @@
 build=5
 
-image_from=""
-tag_prefix=""
-tag_suffix=""
 tag_ver_major=3
-tag_ver_minor=3.8
-tag_ver_full=3.8.1
+tag_ver_minor=8
+tag_ver_patch=1
