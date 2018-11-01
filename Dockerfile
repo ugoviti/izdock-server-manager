@@ -68,6 +68,7 @@ RUN apk --update --no-cache upgrade \
 	php7-apache2 \
 	php7-mbstring \
 	php7-session \
+	php7-phar \
 	mysql-client \
 	py2-future \
 	screen \
@@ -142,4 +143,4 @@ EXPOSE ${APP_SSH_PORT}/tcp ${APP_FTP_PORT}/tcp ${APP_FTP_PASV_MIN}-${APP_FTP_PAS
 ENTRYPOINT ["tini", "-g", "--"]
 CMD ["/entrypoint.sh", "supervisord", "-c", "/etc/supervisord.conf"]
 
-ENV APP_VER "3.8.1-5"
+ENV APP_VER "3.8.1-6"
