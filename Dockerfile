@@ -1,146 +1,170 @@
-FROM golang:1.10.3-alpine3.8 AS gcsfuse
-RUN apk add --no-cache git
+FROM golang:1.11.4-stretch AS gcsfuse
 ENV GOPATH /go
-RUN go get -u github.com/googlecloudplatform/gcsfuse
+RUN set -xe && go get -u github.com/googlecloudplatform/gcsfuse
 
-FROM alpine:3.8
+FROM debian:stretch-slim
 
 MAINTAINER Ugo Viti <ugo.viti@initzero.it>
 
-ENV APP                   "CloudWMS Manager"
-ENV APP_NAME              "server-manager"
+# Application post init exported env variables
+ENV APP_NAME          "server-manager"
+ENV APP_DESCRIPTION   "Cloud Server Manager"
+ENV APP_CHART         ""
+ENV APP_RELEASE       ""
+ENV APP_NAMESPACE     ""
 
-ENV APP_ADMIN_PASSWORD    ""
+# debian apt warnings workaround
+ENV DEBIAN_FRONTEND   noninteractive
 
-ENV APP_SSH_ENABLE        "YES"
-ENV APP_SSH_PORT          22
-ENV APP_SSH_PERMIT_ROOT   "YES"
-ENV APP_SSH_HOST_KEYS_DIR ""
+# addons packages versions
+ENV TINI_VERSION      0.18.0
+ENV PMA_VERSION       4.8.4
 
-ENV APP_FTP_ENABLE        "YES"
-ENV APP_FTP_PORT          21
-ENV APP_FTP_PASV_MIN      21000
-ENV APP_FTP_PASV_MAX      21005
-ENV APP_FTP_SSL           "NO"
-
-ENV APP_OPENVPN_ENABLE    "NO"
-ENV APP_NRPE_ENABLE       "YES"
-
-# certbot support
-ENV CERT_DOMAIN           ""
-ENV CERT_MAIL             ""
-ENV CERT_WEBROOT          ""
-
-#RUN echo "@edge http://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories
-RUN echo "@edgecommunity http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
-# 20180715 alpine 3.8 certbot fix for error: (pkg_resources.ContextualVersionConflict: (idna 2.7 (/usr/lib/python2.7/site-packages), Requirement.parse('idna<2.7,>=2.5'))
-RUN echo "@v3.6 http://dl-cdn.alpinelinux.org/alpine/v3.6/main" >> /etc/apk/repositories
-
-RUN apk --update --no-cache upgrade \
-  && apk add \
-	tini \
-	runit \
-	socklog \
-	supervisor \
-	coreutils \
-	bash \
-	bc \
-	curl \
-	file \
-	vim \
-	procps \
-	tar \
-	zip \
-	gzip \
-	bzip2 \
-	xz \
-	p7zip \
-	netcat-openbsd \
-	wget \
-	rsync \
-	openssh-client \
-	openssh \
-	vsftpd \
-	apache2 \
-	apache2-ctl \
-	apache2-utils \
-	phpmyadmin \
-	php7-apache2 \
-	php7-mbstring \
-	php7-session \
-	php7-phar \
-	mysql-client \
-	py2-future \
-	screen \
-	socat \
-	openvpn \
-	tcpdump \
-	dcron \
-	ca-certificates \
-	fuse \
-	heirloom-mailx \
-	msmtp \
-	openssl \
-	nrpe \
-	nagios-plugins-load \
-	nagios-plugins-disk \
-	nagios-plugins-procs \
-	nagios-plugins-users \
-	# 20180715 certbot fixes
-	py-idna@v3.6 \
-	py2-idna@v3.6 \
-	py-requests-toolbelt@edgecommunity \
-	py2-requests-toolbelt@edgecommunity \
-	certbot \
-#	py-acme@edgecommunity \
-#	certbot@edgecommunity \
-#	rsyslog \
-#	ssmtp \
-#	util-linux \
-#	acct \
-#	postfix \
-#	apk-tools@edge \
-### TEST
-# && wget -q https://dl.eff.org/certbot-auto \
-# && chmod a+x certbot-auto \
- && mkdir -p /run/apache2 \
-# bash config
- && echo "alias d='ls -al'" > /etc/profile.d/iz.sh \
-# postfix config
- && mkdir -p /var/spool/postfix/ \
- && mkdir -p /var/spool/postfix/pid \
- && chown root: /var/spool/postfix/ \
- && chown root: /var/spool/postfix/pid \
- && rm -rf /var/cache/apk/* /tmp/*
-
-# alpine user www-data compatibility
-RUN set -x \
-	&& adduser -u 82 -D -S -G www-data www-data
+# install packages
+RUN set -xe \
+  && apt-get update && apt-get upgrade -y \
+  && apt-get install -y --no-install-recommends \
+    bash \
+   	coreutils \
+    procps \
+    net-tools \
+    iputils-ping \
+    gzip \
+    bzip2 \
+    file \
+    dos2unix \
+    xz-utils \
+    bc \
+    lsb-release \
+    apt-transport-https \
+    ca-certificates \
+    curl \
+    jq \
+    vim \
+    less \
+    tar \
+    zip \
+    unzip \
+    p7zip \
+    netcat-openbsd \
+    dnsutils \
+    xauth \
+    imagemagick \
+    wget \
+    rsync \
+    screen \
+    tcpdump \
+    fuse \
+    locales \
+    sudo \
+    fail2ban \
+    iptables \
+    supervisor \
+    rsyslog \
+    msmtp \
+    heirloom-mailx \
+    cron \
+    apache2 \
+    openssh-client \
+    openssh-server \
+    proftpd \
+    proftpd-mod-vroot \
+    openvpn \
+    nagios-nrpe-server \
+    monitoring-plugins \
+    certbot \
+#    phpmyadmin \
+  && update-ca-certificates \
+  # php 7.3 support
+  && curl -fSL --connect-timeout 30 https://packages.sury.org/php/apt.gpg -o /etc/apt/trusted.gpg.d/php.gpg \
+  && echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/php7.3.list \
+  && apt-get update && apt-get upgrade -y \
+  && apt-get install -y --no-install-recommends \
+    php7.3 php7.3-common php7.3-cli php7.3-fpm php7.3-json php7.3-mysql php7.3-zip php7.3-gd  php7.3-mbstring php7.3-curl php7.3-xml php7.3-bcmath php7.3-json php7.3-bz2 php7.3-mbstring libapache2-mod-php7.3 \
+  #&& cd /etc/apache2/mods-enabled/ \
+  #&& ln -s ../mods-available/php7.3.load \
+  #&& ln -s ../mods-available/php7.3.conf \
+  # phpmyadmin
+  && mkdir -p /var/www/html/admin/pma \
+  && curl -fSL --connect-timeout 30 https://files.phpmyadmin.net/phpMyAdmin/${PMA_VERSION}/phpMyAdmin-${PMA_VERSION}-all-languages.tar.gz | tar -xz -C /var/www/html/admin/pma --strip-components=1 \
+  # install tini as init container
+  && curl -fSL --connect-timeout 30 http://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini_${TINI_VERSION}-amd64.deb -o tini_${TINI_VERSION}-amd64.deb \
+  && dpkg -i tini_$TINI_VERSION-amd64.deb \
+  && rm -f tini_$TINI_VERSION-amd64.deb \
+  && mkdir -p /run/apache2 \
+  # postfix config
+  && mkdir -p /var/spool/postfix/ \
+  && mkdir -p /var/spool/postfix/pid \
+  && chown root: /var/spool/postfix/ \
+  && chown root: /var/spool/postfix/pid \
+  # cleanup system
+  && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
+  && rm -rf /var/lib/apt/lists/* /tmp/*
 
 # install gcsfuse
 COPY --from=gcsfuse /go/bin/gcsfuse /usr/local/bin/
 
-# rsyslog config
-#RUN sed 's/mail.*/mail.info \/dev\/stdout/' -i /etc/rsyslog.conf
+# main variables
+ENV ROOT_PASSWORD     ""
+
+# main services
+ENV CRON_ENABLED      "true"
+ENV HTTPD_ENABLED     "true"
+ENV OPENVPN_ENABLED   "false"
+ENV SYSLOG_ENABLED    "true"
+ENV NRPE_ENABLED      "false"
+ENV SSH_ENABLED       "true"
+ENV FTP_ENABLED       "true"
+ENV PMA_ENABLED       "true"
+ENV CERTBOT_ENABLED   "false"
+ENV MTA_ENABLED       "true"
+ENV POSTFIX_ENABLED   "false"
+
+ENV SSH_PERMIT_ROOT   "yes"
+ENV SSH_PORT          2222
+ENV SSH_SSL_KEYS_DIR  "/etc/ssh"
+
+ENV FTP_PORT          21
+ENV FTP_PASV_ADDR     ""
+ENV FTP_PASV_MIN      21000
+ENV FTP_PASV_MAX      21100
+ENV FTP_FTPS_ENABLED  "false"
+ENV FTP_FTPS_PORT     990
+ENV FTP_FTPS_FORCED   "false"
+ENV FTP_SFTP_ENABLED  "true"
+ENV FTP_SFTP_PORT     22
+ENV FTP_SSL_KEYS_DIR  "/etc/ssl/private"
+
+ENV HTTPD_PORT        80
+
+ENV CSV_USERS         "/.users.csv"
+ENV CSV_GROUPS        "/.groups.csv"
+ENV CSV_REMOVE        "true"
+
+# certbot support (TEST)
+ENV CERT_DOMAIN       ""
+ENV CERT_MAIL         ""
+ENV CERT_WEBROOT      ""
 
 # add files to container
-ADD Dockerfile /
-ADD filesystem /
+ADD Dockerfile filesystem /
 
 # prepare the env
-RUN rm -rf /etc/ssh/ssh_host_* \
- && ssh-keygen -A \
- && mkdir /root/.ssh \
- && chmod 700 /root/.ssh
+RUN set -xe \
+  && rm -rf /etc/ssh/ssh_host_* \
+  #&& ssh-keygen -A \
+  && mkdir -p /run/sshd \
+  && mkdir -p /root/.ssh \
+  && chmod 700 /root/.ssh
 
 # define volumes
 VOLUME	[ "/var/spool/cron/crontabs", "/var/spool/postfix", "/etc/postfix" ]
 
 # exposed ports
-EXPOSE ${APP_SSH_PORT}/tcp ${APP_FTP_PORT}/tcp ${APP_FTP_PASV_MIN}-${APP_FTP_PASV_MAX}/tcp 80/tcp
+EXPOSE ${SSH_PORT}/tcp ${FTP_PORT}/tcp ${FTP_FTPS_PORT}/tcp ${FTP_SFTP_PORT}/tcp ${FTP_PASV_MIN}-${FTP_PASV_MAX}/tcp ${HTTPD_PORT}/tcp
 
 # init supervisord
 ENTRYPOINT ["tini", "-g", "--"]
-CMD ["/entrypoint.sh", "supervisord", "-c", "/etc/supervisord.conf"]
+CMD ["/entrypoint.sh", "supervisord", "-c", "/etc/supervisor/supervisord.conf"]
 
-ENV APP_VER "3.8.1-6"
+ENV APP_VER "1.0.2-5"

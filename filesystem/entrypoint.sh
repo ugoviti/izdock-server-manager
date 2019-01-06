@@ -20,7 +20,7 @@ if [ $APP_RELINK = 1 ]; then
 [ ! -z "${APP_WORK}" ] && relink_dir "${APP_WORK_DEFAULT}" "${APP_WORK}"
 [ ! -z "${APP_SHARED}" ] && relink_dir "${APP_SHARED_DEFAULT}" "${APP_SHARED}"
 else
-  echo "Skipping APP directories relinking"
+  echo "=> Skipping APP directories relinking"
 fi
 }
 
@@ -37,7 +37,7 @@ relink_dir() {
 	[ ! -e "$dir_default" ] && mkdir -p "$dir_default"
 	[ ! -e "$(dirname "$dir_custom")" ] && mkdir -p "$(dirname "$dir_custom")"
 
-	echo "$APP directory container override detected! default: $dir_default custom: $dir_custom"
+	echo "$APP_DESCRIPTION directory container override detected! default: $dir_default custom: $dir_custom"
 	if [ ! -e "$dir_custom" ]; then
 		echo -e -n "=> moving the $dir_default directory to $dir_custom ..."
 		mv "$dir_default" "$dir_custom"
