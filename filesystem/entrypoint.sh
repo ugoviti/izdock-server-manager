@@ -1,15 +1,15 @@
-#!/bin/sh
+#!/bin/bash
 # initzero docker entrypoint generic script
 # written by Ugo Viti <ugo.viti@initzero.it>
-# 20180814
+# 20190113
 
 #set -x
 
 app_pre_hooks() {
 : ${APP_RELINK:=0}
 : ${APP_NAME:=CHANGEME}
-: ${APP_VER:=0}
-echo "=> Starting container: $APP_NAME:$APP_VER"
+: ${APP_VER:=$(cat /VERSION)}
+echo "=> Starting container $APP_DESCRIPTION - $APP_NAME:$APP_VER"
 
 # verify if exist custom directory overrides
 if [ $APP_RELINK = 1 ]; then
@@ -25,7 +25,7 @@ fi
 }
 
 app_post_hooks() {
-/entrypoint-hooks.sh
+. /entrypoint-hooks.sh
 }
 
 # if required move configurations and webapps dirs to custom directory
@@ -53,5 +53,18 @@ relink_dir() {
 app_pre_hooks
 app_post_hooks
 echo "========================================================================"
-# exec entrypoint arguments
-[ ! -z "${APP_USERNAME}" ] && set -x && exec su -m ${APP_USERNAME} -s /bin/bash -c "$@" || exec "$@"
+# set default system umask before starting the container
+umask $UMASK
+
+# use tini init manager if required
+[ "$ENTRYPOINT_TINI" = "true" ] && ENTRYPOINT="tini -g --" || ENTRYPOINT=""
+
+# if this container will run multiple commands, override the entry point cmd
+if [ "$MULTISERVICE" = "true" ]; then
+  set -x
+  exec $ENTRYPOINT runsvdir -P /etc/service
+ else
+  set -x
+  # run the process as user if specified
+  [ ! -z "${APP_USR}" ] && exec $ENTRYPOINT runuser -p -u ${APP_USR} -- $@ || exec $ENTRYPOINT $@
+fi

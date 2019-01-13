@@ -16,11 +16,13 @@
 : ${SERVERNAME:=$HOSTNAME}        # (**$HOSTNAME**) default web server hostname
 : ${HTTPD_CONF_DIR:=/etc/apache2} # (**/etc/apache2**) # apache config dir
 
+# supervisord services
 : ${CRON_ENABLED:="true"}
 : ${HTTPD_ENABLED:="true"}
-: ${NRPE_ENABLED:="false"}
 : ${OPENVPN_ENABLED:="false"}
 : ${SYSLOG_ENABLED:="true"}
+: ${NRPE_ENABLED:="false"}
+: ${ZABBIX_ENABLED:="false"}
 : ${SSH_ENABLED:="true"}
 : ${FTP_ENABLED:="true"}
 : ${PMA_ENABLED:="true"}
@@ -28,6 +30,14 @@
 : ${MTA_ENABLED:="true"}
 : ${POSTFIX_ENABLED:="false"}
 
+: ${ZABBIX_USR:="zabbix"}
+: ${ZABBIX_GRP:="zabbix"}
+: ${ZABBIX_SERVER:="127.0.0.1"}
+: ${ZABBIX_SERVER_ACTIVE:="127.0.0.1"}
+: ${ZABBIX_HOSTNAME:="${HOSTNAME}"}
+: ${ZABBIX_HOSTMETADATA:="Linux"}
+
+: ${ZABBIX_DAEMON:="zabbix-agent"}
 : ${SSH_DAEMON:="sshd"}
 : ${FTP_DAEMON:="proftpd"}
 : ${SYSLOG_DAEMON:="rsyslog"}
@@ -60,6 +70,8 @@ if   [ "$OS_RELEASE" = "debian" ]; then
 : ${PHP_CONF:="/etc/php/7.3/apache2/php.ini"}
 : ${NRPE_CONF:="/etc/nagios/nrpe.cfg"}
 : ${NRPE_CONF_LOCAL:="/etc/nagios/nrpe_local.cfg"}
+: ${ZABBIX_CONF:="/etc/zabbix/zabbix_agentd.conf"}
+: ${ZABBIX_CONF_LOCAL:="/etc/zabbix/zabbix_agentd.d/local.conf"}
 elif [ "$OS_RELEASE" = "alpine" ]; then
 # alpine paths
 : ${SUPERVISOR_DIR:="/etc/supervisor.d"}
@@ -376,6 +388,7 @@ cfgService_ftp() {
   ServerName        \"CloudWMS FTP Server\"
   ServerIdent       on \"CloudWMS FTP Server ready...\"
   ServerType        standalone
+  DeferWelcome      on
   DefaultServer     on
   Port              0
   UseIPv6           off
@@ -383,12 +396,18 @@ cfgService_ftp() {
   MaxInstances      30
   UseSendfile       off
 
+  DisplayLogin      .welcome    # Textfile to display on login
+  DisplayConnect    .connect    # Textfile to display on connection
+  DisplayChdir      .firstchdir # Textfile to display on first changedir
+
+  TimesGMT          on
+  #SetEnv           TZ Europe/Rome
+
   # define the log formats
   LogFormat         default \"%h %l %u %t '%r' %s %b\"
   LogFormat         auth    \"%t [%P] %h '%r' %s\"
   LogFormat         traff   \"%b %u\"
-  LogFormat         awstats \"%t     %h      %u      %m      %f      %s      %b\"
-
+  LogFormat         awstats \"%t %h %u %m %f %s %b\"
 
   <Global>
   Umask             002 002
@@ -509,6 +528,28 @@ cfgService_nrpe() {
     sed 's/dont_blame_nrpe=.*/dont_blame_nrpe=1/g' -i $NRPE_CONF
     sed 's/allow_bash_command_substitution=.*/allow_bash_command_substitution=1/g' -i $NRPE_CONF
     sed 's/#command/command/g' -i $NRPE_CONF
+  fi
+ fi
+}
+
+## zabbix service
+cfgService_zabbix() {
+ if   [ "$OS_RELEASE" = "debian" ]; then
+  # zabbix user defined local config
+  echo "#DebugLevel=4
+#LogFileSize=1
+LogType=system
+Hostname=${ZABBIX_HOSTNAME}
+Server=${ZABBIX_SERVER}
+ServerActive=${ZABBIX_SERVER_ACTIVE}
+#HostMetadataItem=system.uname
+HostMetadata=${ZABBIX_HOSTMETADATA}
+" > "$ZABBIX_CONF_LOCAL"
+  # zabbix global config
+  if [ -w "$ZABBIX_CONF" ]; then
+    sed 's/^LogFile=/#LogFile=/g' -i $ZABBIX_CONF
+    #sed 's/^Hostname=/#Hostname=/g' -i $ZABBIX_CONF
+    #sed 's/Hostname=.*/Hostname=${ZABBIX_HOSTNAME}/g' -i $ZABBIX_CONF
   fi
  fi
 }
@@ -783,6 +824,7 @@ chkService CRON_ENABLED
 chkService SSH_ENABLED
 chkService FTP_ENABLED
 chkService NRPE_ENABLED
+chkService ZABBIX_ENABLED
 chkService OPENVPN_ENABLED
 chkService HTTPD_ENABLED
 [ "${PMA_ENABLED}" = "true" ] && cfgService_pma
