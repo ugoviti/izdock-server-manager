@@ -1,7 +1,7 @@
 #!/bin/bash
 # wrapper script for logging email sent via php sendmail command
 # author: ugo.viti@initzero.it
-# version: 20180429
+# version: 20190209
 
 syslog="no"
 docker="no"
@@ -13,8 +13,9 @@ elif [ -e "/usr/sbin/ssmtp" ]; then
   sendmail="/usr/sbin/ssmtp"
 elif [ -e "/usr/bin/msmtp" ]; then
   sendmail="/usr/bin/msmtp -C /etc/msmtp.conf"
+elif [ -e "/usr/sbin/dma" ]; then
+  sendmail="/usr/sbin/dma"
 fi
-
 
 # remove on return code 0
 trap "rm -rf ${thismail} && exit 0 || exit 1" 0
@@ -36,7 +37,7 @@ if [ "$1" = "-q" ]
     FROM="$(echo ${BASH_ARGV[0]} | sed 's/^-f//')"
     SUBJECT="$(cat $thismail | grep ^"Subject: " | head -n1 | cut -d' ' -f2-)"
     [ $(echo "$SUBJECT" | grep -i ^"=?utf-8?B?") ] && SUBJECT="$(echo $SUBJECT | sed -e 's/^=?utf-8?B?//i' -e 's/?=$//' | base64 -d)"
-    TO="$(cat $thismail | grep ^"To: " | head -n1 | cut -d' ' -f2-)" 
+    TO="$(cat $thismail | grep ^"To: " | head -n1 | cut -d' ' -f2-)"
     [ ! -z "${SCRIPT_NAME}" ] && SCRIPT="/$(basename ${SCRIPT_NAME})"
     LOG="izsendmail: uid=<${UID}> client=<${REMOTE_ADDR}> host=<${HTTP_HOST}> script=<${PWD}${SCRIPT}> from=<${FROM}> to=<${TO}> subject=<${SUBJECT}>"
     if [ "$syslog" = "yes" ]; then
@@ -45,5 +46,5 @@ if [ "$1" = "-q" ]
 	eval echo \"$(date +"%Y-%m-%d %H:%M:%S %Z") $LOG\" $([ "$docker" = "yes" ] && echo "> /proc/1/fd/1")
     fi
     $sendmail $*
-fi < $thismail 
+fi < $thismail
 

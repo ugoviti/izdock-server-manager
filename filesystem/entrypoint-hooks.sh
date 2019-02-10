@@ -1,22 +1,29 @@
 #!/bin/bash
 
-# detect current operating system
+## detect current operating system
 : ${OS_RELEASE:="$(cat /etc/os-release | grep ^ID | awk -F"=" '{print $2}')"}
+: ${HTTPD_CONF_DIR:=/etc/apache2} # (**/etc/apache2**) # apache config dir
+PASSWORD_TYPE="$([ ${ROOT_PASSWORD} ] && echo preset || echo random)"
 
-# default variables
+## app specific variables
 : ${APP_DESCRIPTION:="Cloud Server Manager"}
 : ${APP_CHART:=""}
 : ${APP_RELEASE:=""}
 : ${APP_NAMESPACE:=""}
 
-: ${CSV_USERS:="/.users.csv"}
-: ${CSV_GROUPS:="/.groups.csv"}
-: ${CSV_REMOVE:="true"}
+## hostname configuration
+: ${SERVERNAME:=$HOSTNAME}      # (**$HOSTNAME**) default web server hostname
 
-: ${SERVERNAME:=$HOSTNAME}        # (**$HOSTNAME**) default web server hostname
-: ${HTTPD_CONF_DIR:=/etc/apache2} # (**/etc/apache2**) # apache config dir
+## user and groups management
+: ${CSV_USERS:="/.users.csv"}   # import users using this csv
+: ${CSV_GROUPS:="/.groups.csv"} # import groups using this csv
+: ${CSV_REMOVE:="true"}         # remove the import files for security reason
 
-# supervisord services
+## security
+: ${ROOT_PASSWORD:="$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 13 ; echo '')"} # default root password
+: ${ROOT_MAILTO:="root@localhost"} # default root mail address
+
+## supervisord services
 : ${CRON_ENABLED:="true"}
 : ${HTTPD_ENABLED:="true"}
 : ${OPENVPN_ENABLED:="false"}
@@ -30,6 +37,7 @@
 : ${MTA_ENABLED:="true"}
 : ${POSTFIX_ENABLED:="false"}
 
+## zabbix configuration
 : ${ZABBIX_USR:="zabbix"}
 : ${ZABBIX_GRP:="zabbix"}
 : ${ZABBIX_SERVER:="127.0.0.1"}
@@ -37,15 +45,18 @@
 : ${ZABBIX_HOSTNAME:="${HOSTNAME}"}
 : ${ZABBIX_HOSTMETADATA:="Linux"}
 
+## service name mapping
 : ${ZABBIX_DAEMON:="zabbix-agent"}
 : ${SSH_DAEMON:="sshd"}
 : ${FTP_DAEMON:="proftpd"}
 : ${SYSLOG_DAEMON:="rsyslog"}
 
+## ssh configuration
 : ${SSH_PERMIT_ROOT:="yes"}
 : ${SSH_PORT:=2222}
 : ${SSH_SSL_KEYS_DIR:="/etc/ssh"}
 
+## ftp service configuration
 : ${FTP_PORT:=21}
 : ${FTP_PASV_ADDR:="$(ip route|awk '/^default/ {print $3}')"}
 : ${FTP_PASV_MIN:=21000}
@@ -57,7 +68,19 @@
 : ${FTP_SFTP_PORT:=22}
 : ${FTP_SSL_KEYS_DIR:="/etc/ssl/private"}
 
+## http service configuration
 : ${HTTPD_PORT:=80}
+
+## smtp options
+: ${domain:="$HOSTNAME"}                # local hostname
+: ${from:="root@localhost.localdomain"} # default From email address
+: ${host:="localhost"}                  # remote smtp server
+: ${port:=25}                           # smtp port
+: ${tls:="off"}                         # (**on**|**off**) enable tls
+: ${starttls:="off"}                    # (**on**|**off**) enable starttls
+: ${username:=""}                       # username for auth smtp server
+: ${password:=""}                       # password for auth smtp server
+: ${timeout:=3600}                      # connection timeout
 
 # operating system specific variables
 if   [ "$OS_RELEASE" = "debian" ]; then
@@ -71,7 +94,7 @@ if   [ "$OS_RELEASE" = "debian" ]; then
 : ${NRPE_CONF:="/etc/nagios/nrpe.cfg"}
 : ${NRPE_CONF_LOCAL:="/etc/nagios/nrpe_local.cfg"}
 : ${ZABBIX_CONF:="/etc/zabbix/zabbix_agentd.conf"}
-: ${ZABBIX_CONF_LOCAL:="/etc/zabbix/zabbix_agentd.d/local.conf"}
+: ${ZABBIX_CONF_LOCAL:="/etc/zabbix/zabbix_agentd.conf.d/local.conf"}
 elif [ "$OS_RELEASE" = "alpine" ]; then
 # alpine paths
 : ${SUPERVISOR_DIR:="/etc/supervisor.d"}
@@ -81,16 +104,6 @@ elif [ "$OS_RELEASE" = "alpine" ]; then
 : ${NRPE_CONF:="/etc/nrpe.cfg"}
 fi
 
-# smtp options
-: ${domain:="$HOSTNAME"}                # local hostname
-: ${from:="root@localhost.localdomain"} # default From email address
-: ${host:="localhost"}                  # remote smtp server
-: ${port:=25}                           # smtp port
-: ${tls:="off"}                         # (**on**|**off**) enable tls
-: ${starttls:="off"}                    # (**on**|**off**) enable starttls
-: ${username:=""}                       # username for auth smtp server
-: ${password:=""}                       # password for auth smtp server
-: ${timeout:=3600}                      # connection timeout
 
 # enable/disable and configure services
 chkService() {
@@ -352,15 +365,23 @@ cfgService_ftp() {
   # proftpd confi
   print_proftpd_config() {
   echo "
+  # load modules
+  <IfModule mod_dso.c>
   ModulePath /usr/lib/proftpd
+
   ModuleControlsACLs insmod,rmmod allow user root
   ModuleControlsACLs lsmod allow user *
+
   #LoadModule mod_ctrls_admin.c
   LoadModule mod_tls.c
   #LoadModule mod_radius.c
+  #LoadModule mod_sql.c
+  #LoadModule mod_sql_mysql.c
+  #LoadModule mod_sql_passwd.c
+  #LoadModule mod_quotatab_sql.c
   LoadModule mod_quotatab.c
   LoadModule mod_quotatab_file.c
-  LoadModule mod_quotatab_radius.c
+  #LoadModule mod_quotatab_radius.c
   LoadModule mod_wrap.c
   LoadModule mod_rewrite.c
   LoadModule mod_load.c
@@ -382,34 +403,44 @@ cfgService_ftp() {
   LoadModule mod_tls_memcache.c
   LoadModule mod_ifsession.c
   LoadModule mod_vroot.c
+  </IfModule>
 
-  Include /etc/proftpd/conf.d/*.conf
+  # server configuration
+  ServerName        \"$APP_DESCRIPTION FTP Server\"
+  ServerAdmin       $ROOT_MAILTO
 
-  ServerName        \"CloudWMS FTP Server\"
-  ServerIdent       on \"CloudWMS FTP Server ready...\"
-  ServerType        standalone
-  DeferWelcome      on
-  DefaultServer     on
   Port              0
-  UseIPv6           off
-  UseReverseDNS     off
-  MaxInstances      30
-  UseSendfile       off
-
-  DisplayLogin      .welcome    # Textfile to display on login
-  DisplayConnect    .connect    # Textfile to display on connection
-  DisplayChdir      .firstchdir # Textfile to display on first changedir
 
   TimesGMT          on
   #SetEnv           TZ Europe/Rome
 
+  ServerType        standalone
+  DeferWelcome      on
+  DefaultServer     on
+  UseIPv6           off
+  UseReverseDNS     off
+  IdentLookups      off
+  UseSendfile       off
+  #AuthPAMConfig     proftpd
+  #AuthOrder         mod_auth_pam.c* mod_auth_unix.c
+  # If you use NIS/YP/LDAP you may need to disable PersistentPasswd
+  #PersistentPasswd  off
+
+  MaxInstances      30
+  MaxClientsPerHost 30  \"Only %m connections per host allowed\"
+  MaxClients        512 \"Only %m total simultanious logins allowed\"
+  MaxHostsPerUser   30
+
   # define the log formats
   LogFormat         default \"%h %l %u %t '%r' %s %b\"
-  LogFormat         auth    \"%t [%P] %h '%r' %s\"
+  LogFormat         auth    \"%v [%P] %h %t '%r' %s\"
   LogFormat         traff   \"%b %u\"
   LogFormat         awstats \"%t %h %u %m %f %s %b\"
 
+  ScoreboardFile    /run/proftpd/proftpd.scoreboard
+
   <Global>
+  ServerIdent       on \"$APP_DESCRIPTION FTP Server ready...\"
   Umask             002 002
   User              proftpd
   Group             nogroup
@@ -417,11 +448,24 @@ cfgService_ftp() {
   AllowOverwrite    on
   WtmpLog           off
 
+  DisplayLogin      /etc/proftpd/.welcome    # Textfile to display on login
+  DisplayConnect    /etc/proftpd/.connect    # Textfile to display on connection
+  DisplayChdir      /etc/proftpd/.firstchdir # Textfile to display on first changedir
+
   TransferLog       /var/log/xferlog
-  ExtendedLog       /var/log/proftpd/auth.log    AUTH       auth
-  ExtendedLog       /var/log/proftpd/traff.log   read,write traff
-  ExtendedLog       /var/log/proftpd/awstats.log read,write awstats
-  PathDenyFilter    "\.quota$"
+  ExtendedLog       /var/log/proftpd/access.log     READ,WRITE default
+  ExtendedLog       /var/log/proftpd/auth.log       AUTH       auth
+  ExtendedLog       /var/log/proftpd/traff.log      READ,WRITE traff
+  ExtendedLog       /var/log/proftpd/awstats.log    READ,WRITE awstats
+  #ExtendedLog       /var/log/proftpd/debug.log      ALL default
+  #SQLLogFile        /var/log/proftpd/mysql.log
+  QuotaLog          /var/log/proftpd/quota.log
+
+  AllowStoreRestart on
+  AllowRetrieveRestart on
+  RequireValidShell on
+  #PathDenyFilter    \"(\\.ftpaccess|\\.htaccess)$\"
+  #DenyFilter        \*.*/
 
   # needed to force umask in sftp without errors
   #<Limit SITE_CHMOD>
@@ -429,7 +473,11 @@ cfgService_ftp() {
   #</Limit>
 
   <IfModule mod_vroot.c>
-    VRootEngine                   on
+    VRootEngine     on
+  </IfModule>
+
+  <IfModule mod_delay.c>
+    DelayEngine off
   </IfModule>
 
   # di default permetto connessioni non tls
@@ -439,7 +487,7 @@ cfgService_ftp() {
     TLSRSACertificateFile         ${FTP_SSL_KEYS_DIR}/${FTP_PASV_ADDR}.crt
     TLSRSACertificateKeyFile      ${FTP_SSL_KEYS_DIR}/${FTP_PASV_ADDR}.key
     TLSCipherSuite                ALL:!ADH:!DES
-    TLSOptions                    NoCertRequest
+    TLSOptions                    NoSessionReuseRequired
     TLSVerifyClient               off
     TLSRenegotiate                none
     #TLSRenegotiate               ctrl 3600 data 512000 required off timeout 300
@@ -492,11 +540,13 @@ cfgService_ftp() {
     BanOnEvent                    MaxLoginAttempts 5/00:10:00 00:30:00
 
     # Inform the user that it's not worth persisting
-    BanMessage                    "Host %a has been banned"
+    BanMessage                    \"Host %a has been banned\"
 
     # Allow the FTP admin to manually add/remove bans
     BanControlsACLs               all allow user ftpadm
   </IfModule>
+
+  Include /etc/proftpd/conf.d/*.conf
   "
   }
 
@@ -604,8 +654,8 @@ cfgService_certbot() {
   fi
 }
 
-## SSMTP MTA Agent
 cfgService_mta() {
+## SSMTP MTA Agent
 if [ -e "/usr/sbin/ssmtp" ]; then
  echo "=> Configuring SSMTP MTA..."
  mv /usr/sbin/sendmail /usr/sbin/sendmail.ssmtp
@@ -650,13 +700,34 @@ if [ -e "/usr/bin/msmtp" ]; then
  print_msmtp_conf > /etc/msmtp.conf
 fi
 
+## DMA MTA Agent
+if [ -e "/usr/sbin/dma" ]; then
+ echo "=> Configuring DMA MTA..."
+
+ print_dma_conf() {
+  [ $host ] && echo "SMARTHOST $host"
+  [ $tls = "on" ] && echo "SECURETRANSFER"
+  [ $starttls = "on" ] && echo "STARTTLS"
+  [ $port ] && echo "PORT $port"
+  [ $from ] && echo "MASQUERADE $from"
+  echo "MAILNAME /etc/mailname"
+ }
+ print_auth_conf() {
+  echo $([ ! -z "${username}" ] && echo -n "$username|")${host}$([ ! -z "${password}" ] && echo -n ":${password}|")
+ }
+ [ $domain ] && echo "$domain" > /etc/mailname
+ print_dma_conf > /etc/dma/dma.conf
+ print_auth_conf > /etc/dma/auth.conf
+fi
+
 echo -n "--> forwarding all emails to: $host"
 [ -n "$username" ] && echo -n " using username: $username"
 echo
 
 ## izdsendmail config
 echo "--> Configuring izSendmail MTA Wrapper..."
-[ ! -e "/usr/sbin/sendmail" ] && ln -s /usr/local/sbin/izsendmail /usr/sbin/sendmail
+[ -e "/usr/sbin/sendmail" ] && mv /usr/sbin/sendmail /usr/sbin/sendmail.dist
+ln -s /usr/local/sbin/izsendmail /usr/sbin/sendmail
 sed "s/;sendmail_path =.*/sendmail_path = \/usr\/local\/sbin\/izsendmail -t -i/" -i ${PHP_CONF}
 sed "s/auto_prepend_file =.*/auto_prepend_file = \/usr\/local\/share\/izsendmail-env.php/" -i ${PHP_CONF}
 }
@@ -739,8 +810,6 @@ sed -i -r -e 's/^#submission/submission/' /etc/postfix/master.cf
 ## application hooks
 hooks_always() {
 echo "=> Executing $APP_DESCRIPTION configuration hooks 'always'..."
-PASSWORD_TYPE=$([ ${ROOT_PASSWORD} ] && echo "preset" || echo "random")
-ROOT_PASSWORD="${ROOT_PASSWORD:-$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 13 ; echo '')}"
 
 # save docker variables for later usage
 for var in APP_NAME APP_DESCRIPTION APP_CHART APP_RELEASE APP_NAMESPACE; do eval echo $var='\"$(eval echo \$$var)\"' ; done >> /.dockerenv
@@ -792,7 +861,7 @@ namespace="${domain%%.*}"
 case $namespace in
   prod) nm="\[\e[1;31m\].$namespace\[\e[m\]" ;;
   test) nm="\[\e[1;32m\].$namespace\[\e[m\]" ;;
-  *)    nm="\[\e[1;30m\].$namespace\[\e[m\]" ;;
+  *)    nm="\[\e[1;36m\].$namespace\[\e[m\]" ;;
 esac
 
 # colors management: more info from https://wiki.archlinux.org/index.php/Bash/Prompt_customization_(Italiano)
@@ -814,9 +883,12 @@ if [ "$OS_RELEASE" = "debian" ]; then
   sed 's|^files = .*|files = /etc/supervisor/conf.d/*.ini|' -i /etc/supervisor/supervisord.conf
   mkdir -p /var/log/supervisor /var/log/proftpd /var/log/dbconfig-common /var/log/apt/ /var/log/apache2/ /var/run/nagios/
   touch /var/log/wtmp /var/log/lastlog
-  ln -s /usr/bin/heirloom-mailx /usr/bin/mail
-  ln -s /usr/sbin/nologin /sbin/nologin
+  [ ! -e /sbin/nologin ] && ln -s /usr/sbin/nologin /sbin/nologin
 fi
+
+# configure /etc/aliases
+[ ! -f /etc/aliases ] && echo "postmaster: root" > /etc/aliases
+[ ${ROOT_MAILTO} ] && echo "root: ${ROOT_MAILTO}" >> /etc/aliases
 
 # enable/disable and configure services
 chkService SYSLOG_ENABLED
@@ -827,10 +899,10 @@ chkService NRPE_ENABLED
 chkService ZABBIX_ENABLED
 chkService OPENVPN_ENABLED
 chkService HTTPD_ENABLED
+chkService POSTFIX_ENABLED
+[ "${MTA_ENABLED}" = "true" ] && cfgService_mta
 [ "${PMA_ENABLED}" = "true" ] && cfgService_pma
 [ "${CERTBOT_ENABLED}" = "true" ] && cfgService_certbot
-[ "${MTA_ENABLED}" = "true" ] && cfgService_mta
-chkService POSTFIX_ENABLED
 
 ## rc.local compatibility script
 [ -e "/etc/rc.local" ] && echo "=> Executing /etc/rc.local" && /etc/rc.local

@@ -1,8 +1,8 @@
-FROM golang:1.11.4-stretch AS gcsfuse
+FROM golang:1.11.5-stretch AS gcsfuse
 ENV GOPATH /go
 RUN set -xe && go get -u github.com/googlecloudplatform/gcsfuse
 
-FROM debian:stretch-slim
+FROM debian:buster-slim
 
 MAINTAINER Ugo Viti <ugo.viti@initzero.it>
 
@@ -17,14 +17,28 @@ ENV APP_NAMESPACE     ""
 ENV DEBIAN_FRONTEND   noninteractive
 
 # addons packages versions
-ENV TINI_VERSION      0.18.0
-ENV PMA_VERSION       4.8.4
+#ENV TINI_VERSION      0.18.0
+ENV PMA_VERSION       4.8.5
 ENV ZABBIX_VERSION    4.0
 ENV ZABBIX_BUILD      2
 # install packages
 RUN set -xe \
+  # install curl and update ca certificates
+  && apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \
+  && update-ca-certificates \
+  # zabbix agent
+  && curl -fSL --connect-timeout 30 https://repo.zabbix.com/zabbix/${ZABBIX_VERSION}/debian/pool/main/z/zabbix-release/zabbix-release_${ZABBIX_VERSION}-${ZABBIX_BUILD}+stretch_all.deb -o /tmp/zabbix-release_${ZABBIX_VERSION}-${ZABBIX_BUILD}+stretch_all.deb \
+  && dpkg -i /tmp/zabbix-release_${ZABBIX_VERSION}-${ZABBIX_BUILD}+stretch_all.deb \
+  && rm -f /tmp/zabbix-release_${ZABBIX_VERSION}-${ZABBIX_BUILD}+stretch_all.deb \
+  # stretch php 7.3 support
+#  && curl -fSL --connect-timeout 30 https://packages.sury.org/php/apt.gpg -o /etc/apt/trusted.gpg.d/php.gpg \
+#  && echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/php7.3.list \
+#  && apt-get update && apt-get upgrade -y \
+  # upgrade the system
   && apt-get update && apt-get upgrade -y \
+  # instal all needed packages
   && apt-get install -y --no-install-recommends \
+    tini \
     bash \
    	coreutils \
     procps \
@@ -38,8 +52,6 @@ RUN set -xe \
     bc \
     lsb-release \
     apt-transport-https \
-    ca-certificates \
-    curl \
     jq \
     vim \
     less \
@@ -62,8 +74,9 @@ RUN set -xe \
     iptables \
     supervisor \
     rsyslog \
-    msmtp \
-    heirloom-mailx \
+#    msmtp \
+    dma \
+    bsd-mailx \
     cron \
     apache2 \
     openssh-client \
@@ -74,29 +87,15 @@ RUN set -xe \
     nagios-nrpe-server \
     monitoring-plugins \
     certbot \
+    default-mysql-client \
+    sysbench \
 #    phpmyadmin \
-  && update-ca-certificates \
-  # zabbix agent
-  && curl -fSL --connect-timeout 30 https://repo.zabbix.com/zabbix/${ZABBIX_VERSION}/debian/pool/main/z/zabbix-release/zabbix-release_${ZABBIX_VERSION}-${ZABBIX_BUILD}+stretch_all.deb -o /tmp/zabbix-release_${ZABBIX_VERSION}-${ZABBIX_BUILD}+stretch_all.deb \
-  && dpkg -i /tmp/zabbix-release_4.0-2+stretch_all.deb \
-  && rm -f /tmp/zabbix-release_4.0-2+stretch_all.deb \
-  # php 7.3 support
-  && curl -fSL --connect-timeout 30 https://packages.sury.org/php/apt.gpg -o /etc/apt/trusted.gpg.d/php.gpg \
-  && echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/php7.3.list \
-  && apt-get update && apt-get upgrade -y \
-  && apt-get install -y --no-install-recommends \
-    zabbix-agent \
-    php7.3 php7.3-common php7.3-cli php7.3-fpm php7.3-json php7.3-mysql php7.3-zip php7.3-gd  php7.3-mbstring php7.3-curl php7.3-xml php7.3-bcmath php7.3-json php7.3-bz2 php7.3-mbstring libapache2-mod-php7.3 \
-  #&& cd /etc/apache2/mods-enabled/ \
-  #&& ln -s ../mods-available/php7.3.load \
-  #&& ln -s ../mods-available/php7.3.conf \
-  # phpmyadmin
+    zabbix-agent/testing \
+    php7.3 php7.3-common php7.3-cli php7.3-fpm php7.3-json php7.3-mysql php7.3-zip php7.3-gd php7.3-mbstring php7.3-curl php7.3-xml php7.3-bcmath php7.3-json php7.3-bz2 php7.3-mbstring libapache2-mod-php7.3 \
+  # phpmyadmin config
   && mkdir -p /var/www/html/admin/pma \
   && curl -fSL --connect-timeout 30 https://files.phpmyadmin.net/phpMyAdmin/${PMA_VERSION}/phpMyAdmin-${PMA_VERSION}-all-languages.tar.gz | tar -xz -C /var/www/html/admin/pma --strip-components=1 \
-  # install tini as init container
-  && curl -fSL --connect-timeout 30 http://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini_${TINI_VERSION}-amd64.deb -o tini_${TINI_VERSION}-amd64.deb \
-  && dpkg -i tini_$TINI_VERSION-amd64.deb \
-  && rm -f tini_$TINI_VERSION-amd64.deb \
+  # apache config
   && mkdir -p /run/apache2 \
   # postfix config
   && mkdir -p /var/spool/postfix/ \
@@ -112,6 +111,7 @@ COPY --from=gcsfuse /go/bin/gcsfuse /usr/local/bin/
 
 # main variables
 ENV ROOT_PASSWORD     ""
+ENV ROOT_MAILTO       "root@localhost"
 
 # supervisord services
 ENV CRON_ENABLED      "true"
