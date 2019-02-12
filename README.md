@@ -35,22 +35,32 @@ You can automatically create users and group using ad formatted csv file
 
 # How to use this image
 
-```docker pull izdock/server-manager```
+```
+docker pull izdock/server-manager
+```
 
-```docker run -it --rm izdock/server-manage```
+```
+docker run -it --rm izdock/server-manage
+```
 
 You can test it by configuring your ssh client to use **container-ip:22**
 
 If you need access outside the host, on port 21, 22, 80:
-```docker run -it --rm -p 21:21 -p 22:22 -p 80:80 -p 222:222 izdock/postfix```
+```
+docker run -it --rm -p 21:21 -p 22:22 -p 80:80 -p 222:222 izdock/postfix
+```
 
 Run server-manager creating users and grups from external file:
 
-```docker run -it --rm -p 21:21 -p 22:22 -p 80:80 -p 222:222 -e CSV_REMOVE=false -v /local/path/.users.csv:/.users.csv -v /local/path/.groups.csv:/.groups.csv izdock/postfix```
+```
+docker run -it --rm -p 21:21 -p 22:22 -p 80:80 -p 222:222 -e CSV_REMOVE=false -v /local/path/.users.csv:/.users.csv -v /local/path/.groups.csv:/.groups.csv izdock/postfix
+```
 
 ## Users csv file format:
 
-```id;username;password;groups;home;shell```
+```
+id;username;password;groups;home;shell
+```
 
 Example:
 ```
@@ -62,7 +72,9 @@ Example:
 
 ## Groups csv file format:
 
-```id;groupname```
+```
+id;groupname
+```
 
 Example:
 ```
