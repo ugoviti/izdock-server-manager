@@ -24,8 +24,10 @@ ENV ZABBIX_BUILD      2
 # install packages
 RUN set -xe \
   # install curl and update ca certificates
-  && apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \
+  && apt-get update && apt-get install -y --no-install-recommends curl ca-certificates apt-utils gnupg software-properties-common dirmngr \
   && update-ca-certificates \
+  && apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 0xF1656F24C74CD1D8 \
+  && add-apt-repository 'deb [arch=amd64] https://mirrors.nxthost.com/mariadb/repo/10.2/debian buster main' \
   # zabbix agent
   && curl -fSL --connect-timeout 30 https://repo.zabbix.com/zabbix/${ZABBIX_VERSION}/debian/pool/main/z/zabbix-release/zabbix-release_${ZABBIX_VERSION}-${ZABBIX_BUILD}+stretch_all.deb -o /tmp/zabbix-release_${ZABBIX_VERSION}-${ZABBIX_BUILD}+stretch_all.deb \
   && dpkg -i /tmp/zabbix-release_${ZABBIX_VERSION}-${ZABBIX_BUILD}+stretch_all.deb \
@@ -74,7 +76,6 @@ RUN set -xe \
     iptables \
     supervisor \
     rsyslog \
-#    msmtp \
     dma \
     bsd-mailx \
     cron \
@@ -87,11 +88,11 @@ RUN set -xe \
     nagios-nrpe-server \
     monitoring-plugins \
     certbot \
-    default-mysql-client \
+    # install mariadb 10.2 because in default 10.3 exist this problem https://jira.mariadb.org/browse/MDEV-17429
+    mariadb-client-10.2 \
     sysbench \
     mc \
-#    phpmyadmin \
-    zabbix-agent/testing \
+    zabbix-agent \
     php7.3 php7.3-common php7.3-cli php7.3-fpm php7.3-json php7.3-mysql php7.3-zip php7.3-gd php7.3-mbstring php7.3-curl php7.3-xml php7.3-bcmath php7.3-json php7.3-bz2 php7.3-mbstring libapache2-mod-php7.3 \
   # phpmyadmin config
   && mkdir -p /var/www/html/admin/pma \
