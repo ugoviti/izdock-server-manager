@@ -15,9 +15,10 @@ PASSWORD_TYPE="$([ ${ROOT_PASSWORD} ] && echo preset || echo random)"
 : ${SERVERNAME:=$HOSTNAME}      # (**$HOSTNAME**) default web server hostname
 
 ## user and groups management
+: ${CSV_IMPORT:="true"}         # create users and groups importing from csv files
+: ${CSV_REMOVE:="true"}         # for security reasons, after importing user and groups, remove the csv files
 : ${CSV_USERS:="/.users.csv"}   # import users using this csv
 : ${CSV_GROUPS:="/.groups.csv"} # import groups using this csv
-: ${CSV_REMOVE:="true"}         # remove the import files for security reason
 
 ## security
 : ${ROOT_PASSWORD:="$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 13 ; echo '')"} # default root password
@@ -907,23 +908,29 @@ chkService POSTFIX_ENABLED
 ## rc.local compatibility script
 [ -e "/etc/rc.local" ] && echo "=> Executing /etc/rc.local" && /etc/rc.local
 
-## create users and groups if import file exist
-if [ -e "$CSV_GROUPS" ];then
-    echo "=> Importing system groups via CSV '$CSV_GROUPS'"
-    addCSVGroups "$CSV_GROUPS"
-    [ "$CSV_REMOVE" = "true" ] && (echo "=> Removing imported CSV file '$CSV_GROUPS'" && rm -f "$CSV_GROUPS") || (echo "=> Keeping imported CSV '$CSV_GROUPS'")
-  else
-    echo "=> INFO: The groups CSV file '$CSV_GROUPS' doesn't exist... not importing"
-fi
-if [ -e "$CSV_USERS" ];then
-    echo "=> Importing system users via CSV '$CSV_USERS'"
-    addCSVUsers "$CSV_USERS"
-    addCSVUsers2Groups "$CSV_USERS"
-    [ "$CSV_REMOVE" = "true" ] && (echo "=> Removing imported CSV file '$CSV_USERS'" && rm -f "$CSV_USERS") || (echo "=> Keeping imported CSV '$CSV_USERS'")
-  else
-    echo "=> INFO: The users CSV file '$CSV_USERS' doesn't exist... not importing"
-fi
+if [ "$CSV_IMPORT" = "true" ]; then
+  # if the CSV files are created on container startup (like Kubernetes PostStart Hook) the files can be written after some time, so manage this behavior
+  [ ! -e "$CSV_GROUPS" ] && echo "=> INFO: The groups CSV file '$CSV_GROUPS' doesn't exist... waiting 30 seonds before continue" && sleep 30
+  [ ! -e "$CSV_USERS" ] && echo "=> INFO: The users CSV file '$CSV_USERS' doesn't exist... waiting 30 seonds before continue" && sleep 30
 
+  ## create users and groups if import file exist
+  if [ -e "$CSV_GROUPS" ];then
+      echo "=> Importing system groups via CSV '$CSV_GROUPS'"
+      addCSVGroups "$CSV_GROUPS"
+      [ "$CSV_REMOVE" = "true" ] && (echo "--> Removing imported CSV file '$CSV_GROUPS'" && rm -f "$CSV_GROUPS") || (echo "--> Keeping imported CSV '$CSV_GROUPS'")
+    else
+      echo "=> INFO: The groups CSV file '$CSV_GROUPS' doesn't exist... not importing"
+  fi
+
+  if [ -e "$CSV_USERS" ];then
+      echo "=> Importing system users via CSV '$CSV_USERS'"
+      addCSVUsers "$CSV_USERS"
+      addCSVUsers2Groups "$CSV_USERS"
+      [ "$CSV_REMOVE" = "true" ] && (echo "--> Removing imported CSV file '$CSV_USERS'" && rm -f "$CSV_USERS") || (echo "--> Keeping imported CSV '$CSV_USERS'")
+    else
+      echo "=> INFO: The users CSV file '$CSV_USERS' doesn't exist... not importing"
+  fi
+fi
 
 ## final messages
 echo "========================================================================"
