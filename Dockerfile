@@ -1,4 +1,4 @@
-FROM golang:1.11.5-stretch AS gcsfuse
+FROM golang:1.12.0-stretch AS gcsfuse
 ENV GOPATH /go
 RUN set -xe && go get -u github.com/googlecloudplatform/gcsfuse
 
