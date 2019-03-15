@@ -19,20 +19,21 @@ ENV DEBIAN_FRONTEND   noninteractive
 # addons packages versions
 #ENV TINI_VERSION      0.18.0
 ENV PMA_VERSION       4.8.5
-ENV ZABBIX_VERSION    4.0
-ENV ZABBIX_BUILD      2
+#ENV ZABBIX_VERSION    4.0
+#ENV ZABBIX_BUILD      2
 # install packages
 RUN set -xe \
   # install curl and update ca certificates
   && apt-get update && apt-get install -y --no-install-recommends curl ca-certificates apt-utils gnupg software-properties-common dirmngr \
   && update-ca-certificates \
+  # mariadb repo
   && apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 0xF1656F24C74CD1D8 \
   && add-apt-repository 'deb [arch=amd64] https://mirrors.nxthost.com/mariadb/repo/10.2/debian buster main' \
-  # zabbix agent
-  && curl -fSL --connect-timeout 30 https://repo.zabbix.com/zabbix/${ZABBIX_VERSION}/debian/pool/main/z/zabbix-release/zabbix-release_${ZABBIX_VERSION}-${ZABBIX_BUILD}+stretch_all.deb -o /tmp/zabbix-release_${ZABBIX_VERSION}-${ZABBIX_BUILD}+stretch_all.deb \
-  && dpkg -i /tmp/zabbix-release_${ZABBIX_VERSION}-${ZABBIX_BUILD}+stretch_all.deb \
-  && rm -f /tmp/zabbix-release_${ZABBIX_VERSION}-${ZABBIX_BUILD}+stretch_all.deb \
-  # stretch php 7.3 support
+  # zabbix agent (using default debian repo)
+#  && curl -fSL --connect-timeout 30 https://repo.zabbix.com/zabbix/${ZABBIX_VERSION}/debian/pool/main/z/zabbix-release/zabbix-release_${ZABBIX_VERSION}-${ZABBIX_BUILD}+stretch_all.deb -o /tmp/zabbix-release_${ZABBIX_VERSION}-${ZABBIX_BUILD}+stretch_all.deb \
+#  && dpkg -i /tmp/zabbix-release_${ZABBIX_VERSION}-${ZABBIX_BUILD}+stretch_all.deb \
+#  && rm -f /tmp/zabbix-release_${ZABBIX_VERSION}-${ZABBIX_BUILD}+stretch_all.deb \
+  # stretch php 7.3 support (using default debian repo)
 #  && curl -fSL --connect-timeout 30 https://packages.sury.org/php/apt.gpg -o /etc/apt/trusted.gpg.d/php.gpg \
 #  && echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/php7.3.list \
 #  && apt-get update && apt-get upgrade -y \
@@ -90,10 +91,14 @@ RUN set -xe \
     certbot \
     # install mariadb 10.2 because in default 10.3 exist this problem https://jira.mariadb.org/browse/MDEV-17429
     mariadb-client-10.2 \
-    sysbench \
+    #sysbench \
     mc \
     zabbix-agent \
-    php7.3 php7.3-common php7.3-cli php7.3-fpm php7.3-json php7.3-mysql php7.3-zip php7.3-gd php7.3-mbstring php7.3-curl php7.3-xml php7.3-bcmath php7.3-json php7.3-bz2 php7.3-mbstring libapache2-mod-php7.3 \
+    php php-common php-cli php-json php-mysql php-zip php-gd php-mbstring php-curl php-xml php-bcmath php-json php-bz2 php-mbstring libapache2-mod-php \
+  # sysbench
+  && curl -fSL --connect-timeout 30 http://ftp.debian.org/debian/pool/main/s/sysbench/sysbench_0.4.12-1.2_amd64.deb -o /tmp/sysbench_0.4.12-1.2_amd64.deb \
+  && apt-get install -y --no-install-recommends /tmp/sysbench_0.4.12-1.2_amd64.deb \
+  && rm -f /tmp/sysbench_0.4.12-1.2_amd64.deb \
   # phpmyadmin config
   && mkdir -p /var/www/html/admin/pma \
   && curl -fSL --connect-timeout 30 https://files.phpmyadmin.net/phpMyAdmin/${PMA_VERSION}/phpMyAdmin-${PMA_VERSION}-all-languages.tar.gz | tar -xz -C /var/www/html/admin/pma --strip-components=1 \

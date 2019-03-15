@@ -163,9 +163,10 @@ userAdd() {
     [ ! -z "$home" ] && ([ ! -e "$(dirname $home)" ] && mkdir -p "$(dirname $home)")
     useradd $([ -n "$shell" ] && echo "-s $shell" || echo "-s /sbin/nologin") \
             $([ ! -z "$home" ] && echo "-d $home" || echo "-m") \
-            $([   -e "$home" ] && echo "-M") \
+            $([ ! -z "$home" ] &&  ([ -e "$home" ] && echo "-M" || echo "-m")) \
             $([ ! -z "$id" ] && echo "-u $id") \
             -K UMASK=0007 -c "$username" -g "$username" $username;
+    #set +x
     # set user password
     [ ! -z "$password" ] && echo $username:$password | chpasswd;
 }
@@ -916,6 +917,7 @@ if [ "$CSV_IMPORT" = "true" ]; then
   ## create users and groups if import file exist
   if [ -e "$CSV_GROUPS" ];then
       echo "=> Importing system groups via CSV '$CSV_GROUPS'"
+      # create groups
       addCSVGroups "$CSV_GROUPS"
       [ "$CSV_REMOVE" = "true" ] && (echo "--> Removing imported CSV file '$CSV_GROUPS'" && rm -f "$CSV_GROUPS") || (echo "--> Keeping imported CSV '$CSV_GROUPS'")
     else
@@ -924,7 +926,9 @@ if [ "$CSV_IMPORT" = "true" ]; then
 
   if [ -e "$CSV_USERS" ];then
       echo "=> Importing system users via CSV '$CSV_USERS'"
+      # create users
       addCSVUsers "$CSV_USERS"
+      # add users to groups
       addCSVUsers2Groups "$CSV_USERS"
       [ "$CSV_REMOVE" = "true" ] && (echo "--> Removing imported CSV file '$CSV_USERS'" && rm -f "$CSV_USERS") || (echo "--> Keeping imported CSV '$CSV_USERS'")
     else

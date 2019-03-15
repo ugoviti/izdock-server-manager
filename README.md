@@ -2,7 +2,7 @@
 Production ready multi services Server Manager
 
 # Supported tags
--	`1.0.5-BUILD`, `1.0.5`, `1.0`, `1`, `latest`
+-	`1.0.6-BUILD`, `1.0.6`, `1.0`, `1`, `latest`
 
 Where **BUILD** is the build number (look into project [Tags](tags/) page to discover the latest BUILD NUMBER)
 
