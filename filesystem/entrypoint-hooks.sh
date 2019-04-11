@@ -836,13 +836,16 @@ echo "$(tput setaf 214)$APP_DESCRIPTION$(tput sgr0) :: $([ -n "$APP_CHART" ] && 
 
 # colorize bash prompt and vars
 echo -E '## initZero customizations
-export PATH=$PATH:~/bin
+. /.dockerenv
 
+PATH=$PATH:~/bin
+
+NAMESPACE="$APP_NAMESPACE"
 HISTSIZE=1000000
 HISTFILESIZE=2000000
 
 # no language files are installed, force to C
-export LC_ALL=C
+LC_ALL=C
 
 # misc useful aliases
 alias d="ls -al"
