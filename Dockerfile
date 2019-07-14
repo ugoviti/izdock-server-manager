@@ -18,7 +18,8 @@ ENV DEBIAN_FRONTEND   noninteractive
 
 # addons packages versions
 #ENV TINI_VERSION      0.18.0
-ENV PMA_VERSION       4.8.5
+# https://www.phpmyadmin.net/downloads/
+ENV PMA_VERSION       4.9.0.1
 #ENV ZABBIX_VERSION    4.0
 #ENV ZABBIX_BUILD      2
 # install packages
@@ -96,9 +97,9 @@ RUN set -xe \
     zabbix-agent \
     php php-common php-cli php-json php-mysql php-zip php-gd php-mbstring php-curl php-xml php-bcmath php-json php-bz2 php-mbstring libapache2-mod-php \
   # sysbench
-  && curl -fSL --connect-timeout 30 http://ftp.debian.org/debian/pool/main/s/sysbench/sysbench_0.4.12-1.2_amd64.deb -o /tmp/sysbench_0.4.12-1.2_amd64.deb \
-  && apt-get install -y --no-install-recommends /tmp/sysbench_0.4.12-1.2_amd64.deb \
-  && rm -f /tmp/sysbench_0.4.12-1.2_amd64.deb \
+  #&& curl -fSL --connect-timeout 30 http://ftp.debian.org/debian/pool/main/s/sysbench/sysbench_0.4.12-1.2_amd64.deb -o /tmp/sysbench_0.4.12-1.2_amd64.deb \
+  #&& apt-get install -y --no-install-recommends /tmp/sysbench_0.4.12-1.2_amd64.deb \
+  #&& rm -f /tmp/sysbench_0.4.12-1.2_amd64.deb \
   # phpmyadmin config
   && mkdir -p /var/www/html/admin/pma \
   && curl -fSL --connect-timeout 30 https://files.phpmyadmin.net/phpMyAdmin/${PMA_VERSION}/phpMyAdmin-${PMA_VERSION}-all-languages.tar.gz | tar -xz -C /var/www/html/admin/pma --strip-components=1 \

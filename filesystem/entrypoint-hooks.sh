@@ -260,7 +260,8 @@ cfgService_ssh() {
      if [ ! -e "$SSH_SSL_KEYS_DIR/ssh_host_rsa_key" ];then
       echo "---> Generating SSH server certificates into $SSH_SSL_KEYS_DIR"
       mkdir -p "$SSH_SSL_KEYS_DIR"
-      ssh-keygen -f "$SSH_SSL_KEYS_DIR/ssh_host_rsa_key" -N '' -t rsa 1>/dev/null
+      # because proftpd bug with openssl 1.1.1a we must force PEM format (-m PEM) https://github.com/proftpd/proftpd/issues/793
+      ssh-keygen -f "$SSH_SSL_KEYS_DIR/ssh_host_rsa_key" -N '' -t rsa -m PEM 1>/dev/null
      fi
      sed "s|#HostKey \/etc\/ssh\/ssh_host_rsa_key|HostKey $SSH_SSL_KEYS_DIR/ssh_host_rsa_key|" -i /etc/ssh/sshd_config
    else
@@ -914,8 +915,8 @@ chkService POSTFIX_ENABLED
 
 if [ "$CSV_IMPORT" = "true" ]; then
   # if the CSV files are created on container startup (like Kubernetes PostStart Hook) the files can be written after some time, so manage this behavior
-  [ ! -e "$CSV_GROUPS" ] && echo "=> INFO: The groups CSV file '$CSV_GROUPS' doesn't exist... waiting 30 seonds before continue" && sleep 30
-  [ ! -e "$CSV_USERS" ] && echo "=> INFO: The users CSV file '$CSV_USERS' doesn't exist... waiting 30 seonds before continue" && sleep 30
+  [ ! -e "$CSV_GROUPS" ] && echo "=> INFO: The groups CSV file '$CSV_GROUPS' doesn't exist... waiting 30 seconds before continue" && sleep 30
+  [ ! -e "$CSV_USERS" ] && echo "=> INFO: The users CSV file '$CSV_USERS' doesn't exist... waiting 30 seconds before continue" && sleep 30
 
   ## create users and groups if import file exist
   if [ -e "$CSV_GROUPS" ];then
