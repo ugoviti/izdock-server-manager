@@ -1,0 +1,76 @@
+#!/bin/bash
+# automatic let's encrypt certification via certbot importing domains list from csv
+# author: Ugo Viti <ugo.viti@initzero.it>
+# version: 20190811
+
+certbotCmd() {
+  certbot certonly --expand -n --agree-tos --webroot -w "$CERTBOT_WEBROOT" --cert-name $CERTBOT_DOMAIN_MAIN $CERTBOT_DOMAINS_VALID
+}
+
+addCSVLetsEncrypt() {
+#if [ -z "$1" ] || [ ! -e "$1" ]; then echo "unable to fine input file $file. exiting..." && exit 1 ; fi
+
+cat "$1" | while read line; do
+  # csv fields order: webroot;domain;additionalDomain1;additionalDomain2;...;additionalDomainN
+  CERTBOT_FRONTEND_ADDRESS="$(echo "$line" | cut -d';' -f1)"
+  CERTBOT_WEBROOT="$(echo "$line" | cut -d';' -f2)"
+  CERTBOT_DOMAIN_MAIN="$(echo "$line" | cut -d';' -f3)"
+  CERTBOT_DOMAIN_ALIAS="$(echo "$line" | cut -d';' -f4-)"
+  CERTBOT_DOMAIN_ALL="${CERTBOT_DOMAIN_MAIN}$([ ! -z "$CERTBOT_DOMAIN_ALIAS" ] && echo ";$CERTBOT_DOMAIN_ALIAS")"
+  
+  echo "==> Verifying SSL certificates for domains: '$CERTBOT_DOMAIN_ALL'"
+  if [ -e "$CERTBOT_WEBROOT" ] ; then
+
+  while read CERTBOT_DOMAIN ; do
+      #echo CERTBOT_DOMAIN=$CERTBOT_DOMAIN
+      IP_FRONTEND="$(host $CERTBOT_FRONTEND_ADDRESS | awk '/has address/ { print $4 ; exit }')"
+      IP_DOMAIN="$(host $CERTBOT_DOMAIN | awk '/has address/ { print $4 ; exit }')"
+      if [ ! -z "$IP_DOMAIN" ]; then
+        if [ "$IP_DOMAIN" = "$IP_FRONTEND" ]; then
+          # verify if the certificate exist and is due to renew
+          CERTBOT_FULLCHAIN="/etc/letsencrypt/live/$CERTBOT_DOMAIN/fullchain.pem"
+          [ -e "$CERTBOT_FULLCHAIN" ] && EXPIRE_UNIXTIME=$(date -d "$(openssl x509 -noout -dates -in "$CERTBOT_FULLCHAIN" | grep ^"notAfter=" | sed 's/^notAfter=//')" +%s)
+          CERTBOT_DOMAINS_VALID+=" -d $CERTBOT_DOMAIN"
+        else
+          echo "---> WARNING: The resolved IP of $CERTBOT_DOMAIN ($IP_DOMAIN) differ from frontend $CERTBOT_FRONTEND_ADDRESS ($IP_FRONTEND)... skipping certificate request"
+        fi
+        else
+          echo "---> WARNING: excluding domain '$CERTBOT_DOMAIN' because could not be resolved by DNS"
+      fi
+    done < <(echo "$CERTBOT_DOMAIN_ALL" | sed $'s/;/\\\n/g')
+
+    # verify if DNS is configured
+    if [ ! -z "$CERTBOT_DOMAINS_VALID" ]; then
+        # verify if the certificate exist and is due to renew
+        CERTBOT_FULLCHAIN="/etc/letsencrypt/live/$CERTBOT_DOMAIN_MAIN/fullchain.pem"
+        if [ -e "$CERTBOT_FULLCHAIN" ]; then
+          # 2592000 = 30 days
+          # 1296000 = 15 days
+          # 864000 = 10 days
+          # 604800 = 7 days
+          # 259200 = 3 days
+          # 86400 = 1 day
+          THRESHOLD_RENEW=604800
+          UNIXTIME_EXPIRE=$(date -d "$(openssl x509 -noout -dates -in "$CERTBOT_FULLCHAIN" | grep ^"notAfter=" | sed 's/^notAfter=//')" +%s)
+          UNIXTIME_RENEW=$(echo $(date +%s) + $THRESHOLD_RENEW | bc)
+          if [ $UNIXTIME_RENEW -gt $UNIXTIME_EXPIRE ]; then
+              echo "---> INFO: MUST RENEW $CERTBOT_DOMAIN_MAIN (expiry on $(date -d @$UNIXTIME_EXPIRE +'%Y-%m-%d %H:%M:%S'))"
+              certbotCmd
+            else
+              echo "---> INFO: NOT RENEW $CERTBOT_DOMAIN_MAIN (expiry on $(date -d @$UNIXTIME_EXPIRE +'%Y-%m-%d %H:%M:%S'))"
+          fi
+         else
+          echo "---> INFO: Generating NEW certificates using webroot '$CERTBOT_WEBROOT' for domains: '$CERTBOT_DOMAINS_ALL'"
+          certbotCmd
+        fi
+      else
+        echo "---> ERROR: not a valid DNS domain found to certificate"
+    fi
+    unset CERTBOT_DOMAINS_VALID
+   else
+    echo "---> ERROR: webroot '$CERTBOT_WEBROOT' doesn't exist... retry later"
+  fi
+done
+}
+
+addCSVLetsEncrypt $1

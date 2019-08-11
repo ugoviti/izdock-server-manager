@@ -15,10 +15,13 @@ PASSWORD_TYPE="$([ ${ROOT_PASSWORD} ] && echo preset || echo random)"
 : ${SERVERNAME:=$HOSTNAME}      # (**$HOSTNAME**) default web server hostname
 
 ## user and groups management
-: ${CSV_IMPORT:="true"}         # create users and groups importing from csv files
-: ${CSV_REMOVE:="true"}         # for security reasons, after importing user and groups, remove the csv files
-: ${CSV_USERS:="/.users.csv"}   # import users using this csv
-: ${CSV_GROUPS:="/.groups.csv"} # import groups using this csv
+: ${CSV_IMPORT:="true"}           # create users and groups importing from csv files
+: ${CSV_REMOVE:="true"}           # for security reasons, after importing user and groups, remove the csv files
+: ${CSV_USERS:="/.users.csv"}     # import users using this csv
+: ${CSV_GROUPS:="/.groups.csv"}   # import groups using this csv
+
+## certbot ssl certificates management
+: ${CSV_CERTBOT:="/.certbot.csv"} # import ssl domains list using this csv
 
 ## security
 : ${ROOT_PASSWORD:="$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 13 ; echo '')"} # default root password
@@ -648,12 +651,11 @@ cfgService_pma() {
 
 # let's encrypt / certbot service
 cfgService_certbot() {
-  echo "=> Configuring Let's Encrypt SSL with certbot..."
-  if [ ! -z "$CERT_DOMAIN" ] && [ ! -z "$CERT_MAIL" ] && [ ! -z "$CERT_WEBROOT" ]; then
-    echo "--> Generating SSL certificate for '$CERT_DOMAIN' domain using '$CERT_WEBROOT' as webroot"
-    certbot certonly -n --agree-tos --webroot -m $CERT_MAIL -w $CERT_WEBROOT -d $CERT_DOMAIN
-  #else
-  #  echo "No CERT_DOMAIN variable found, skipping ssl certificate creation"
+  echo "=> Generating Let's Encrypt SSL Certificates with certbot..."
+  if [ -e "$CSV_CERTBOT" ] && [ ! -z "$(cat "$CSV_CERTBOT")" ] ; then
+    izcertbot "$CSV_CERTBOT"
+  else
+    echo "No CSV_CERTBOT variable found, or file is empty. skipping SSL certificate creation..."
   fi
 }
 

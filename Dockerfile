@@ -1,4 +1,4 @@
-FROM golang:1.12.0-stretch AS gcsfuse
+FROM golang:1.12.7-buster AS gcsfuse
 ENV GOPATH /go
 RUN set -xe && go get -u github.com/googlecloudplatform/gcsfuse
 
@@ -28,8 +28,8 @@ RUN set -xe \
   && apt-get update && apt-get install -y --no-install-recommends curl ca-certificates apt-utils gnupg software-properties-common dirmngr \
   && update-ca-certificates \
   # mariadb repo
-  && apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 0xF1656F24C74CD1D8 \
-  && add-apt-repository 'deb [arch=amd64] https://mirrors.nxthost.com/mariadb/repo/10.2/debian buster main' \
+  #&& apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 0xF1656F24C74CD1D8 \
+  #&& add-apt-repository 'deb [arch=amd64] https://mirrors.nxthost.com/mariadb/repo/10.2/debian buster main' \
   # zabbix agent (using default debian repo)
 #  && curl -fSL --connect-timeout 30 https://repo.zabbix.com/zabbix/${ZABBIX_VERSION}/debian/pool/main/z/zabbix-release/zabbix-release_${ZABBIX_VERSION}-${ZABBIX_BUILD}+stretch_all.deb -o /tmp/zabbix-release_${ZABBIX_VERSION}-${ZABBIX_BUILD}+stretch_all.deb \
 #  && dpkg -i /tmp/zabbix-release_${ZABBIX_VERSION}-${ZABBIX_BUILD}+stretch_all.deb \
@@ -91,7 +91,7 @@ RUN set -xe \
     monitoring-plugins \
     certbot \
     # install mariadb 10.2 because in default 10.3 exist this problem https://jira.mariadb.org/browse/MDEV-17429
-    mariadb-client-10.2 \
+    #mariadb-client-10.2 \
     #sysbench \
     mc \
     zabbix-agent \
@@ -163,10 +163,8 @@ ENV CSV_USERS         "/.users.csv"
 ENV CSV_GROUPS        "/.groups.csv"
 ENV CSV_REMOVE        "true"
 
-# certbot support (TEST)
-ENV CERT_DOMAIN       ""
-ENV CERT_MAIL         ""
-ENV CERT_WEBROOT      ""
+# certbot support
+ENV CSV_CERTBOT       "/.certbot.csv"
 
 # add files to container
 ADD Dockerfile filesystem /
