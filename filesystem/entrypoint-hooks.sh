@@ -651,7 +651,7 @@ cfgService_pma() {
 
 # let's encrypt / certbot service
 cfgService_certbot() {
-  echo "=> Generating Let's Encrypt SSL Certificates with certbot..."
+  echo "=> Generating Let's Encrypt SSL Certificates from CSV '$CSV_CERTBOT'..."
   if [ -e "$CSV_CERTBOT" ] && [ ! -z "$(cat "$CSV_CERTBOT")" ] ; then
     izcertbot "$CSV_CERTBOT"
   else

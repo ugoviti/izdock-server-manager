@@ -23,7 +23,7 @@ cat "$1" | while read line; do
   CERTBOT_DOMAIN_ALIAS="$(echo "$line" | cut -d';' -f4-)"
   CERTBOT_DOMAIN_ALL="${CERTBOT_DOMAIN_MAIN}$([ ! -z "$CERTBOT_DOMAIN_ALIAS" ] && echo ";$CERTBOT_DOMAIN_ALIAS")"
   
-  echo "==> Verifying SSL certificates for domains: '$CERTBOT_DOMAIN_ALL' imported from '$CSV_CERTBOT'"
+  echo "==> Verifying SSL certificates for domains: '$CERTBOT_DOMAIN_ALL'"
   if [ -e "$CERTBOT_WEBROOT" ] ; then
 
   while read CERTBOT_DOMAIN ; do
@@ -65,7 +65,7 @@ cat "$1" | while read line; do
               echo "---> INFO: NOT RENEW $CERTBOT_DOMAIN_MAIN (expiry on $(date -d @$UNIXTIME_EXPIRE +'%Y-%m-%d %H:%M:%S'))"
           fi
          else
-          echo "---> INFO: Generating NEW certificates using webroot '$CERTBOT_WEBROOT' for domains: '$CERTBOT_DOMAINS_ALL'"
+          echo "---> INFO: Generating NEW certificates using webroot '$CERTBOT_WEBROOT' for domains: '$CERTBOT_DOMAINS_VALID'"
           certbotCmd
         fi
       else

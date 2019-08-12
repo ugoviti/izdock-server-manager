@@ -27,9 +27,9 @@ RUN set -xe \
   # install curl and update ca certificates
   && apt-get update && apt-get install -y --no-install-recommends curl ca-certificates apt-utils gnupg software-properties-common dirmngr \
   && update-ca-certificates \
-  # mariadb repo
-  #&& apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 0xF1656F24C74CD1D8 \
-  #&& add-apt-repository 'deb [arch=amd64] https://mirrors.nxthost.com/mariadb/repo/10.2/debian buster main' \
+  # install mariadb 10.2 because in default 10.3 exist this problem https://jira.mariadb.org/browse/MDEV-17429
+  && apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 0xF1656F24C74CD1D8 \
+  && add-apt-repository 'deb [arch=amd64] http://mirror.biznetgio.com/mariadb/repo/10.2/debian stretch main' \
   # zabbix agent (using default debian repo)
 #  && curl -fSL --connect-timeout 30 https://repo.zabbix.com/zabbix/${ZABBIX_VERSION}/debian/pool/main/z/zabbix-release/zabbix-release_${ZABBIX_VERSION}-${ZABBIX_BUILD}+stretch_all.deb -o /tmp/zabbix-release_${ZABBIX_VERSION}-${ZABBIX_BUILD}+stretch_all.deb \
 #  && dpkg -i /tmp/zabbix-release_${ZABBIX_VERSION}-${ZABBIX_BUILD}+stretch_all.deb \
@@ -90,9 +90,10 @@ RUN set -xe \
     nagios-nrpe-server \
     monitoring-plugins \
     certbot \
-    # install mariadb 10.2 because in default 10.3 exist this problem https://jira.mariadb.org/browse/MDEV-17429
-    #mariadb-client-10.2 \
     #sysbench \
+    # install mariadb 10.2 because in default 10.3 exist this problem https://jira.mariadb.org/browse/MDEV-17429
+    mariadb-client-10.2 \
+    #mariadb-client \
     mc \
     zabbix-agent \
     php php-common php-cli php-json php-mysql php-zip php-gd php-mbstring php-curl php-xml php-bcmath php-json php-bz2 php-mbstring libapache2-mod-php \
