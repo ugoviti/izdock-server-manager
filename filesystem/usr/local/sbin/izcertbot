@@ -59,8 +59,8 @@ cat "$1" | while read line; do
           UNIXTIME_RENEW=$(echo $(date +%s) + $THRESHOLD_RENEW | bc)
           if [ "$CERTBOT_CN" != "$CERTBOT_DOMAIN_MAIN" ]; then
               echo "---> INFO: Certificate already exist with a wrong CN ($CERTBOT_CN) ricreating it for ($CERTBOT_DOMAIN_MAIN)"
-              echo "---> WARNING: Cleaning a not empty dir: $CERTBOT_DIR"
-              rm -rf "$CERTBOT_DIR"
+              echo "---> WARNING: Archiving a not empty dir: mv $CERTBOT_DIR $CERTBOT_DIR-$(date +%Y%m%d-%H%M%S)"
+              mv "$CERTBOT_DIR" "$CERTBOT_DIR-$(date +%Y%m%d-%H%M%S)"
               certbotCmd
           elif [ $UNIXTIME_RENEW -gt $UNIXTIME_EXPIRE ]; then
               echo "---> INFO: MUST RENEW $CERTBOT_DOMAIN_MAIN (expiry on $(date -d @$UNIXTIME_EXPIRE +'%Y-%m-%d %H:%M:%S'))"
