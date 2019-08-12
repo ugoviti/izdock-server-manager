@@ -32,11 +32,8 @@ cat "$1" | while read line; do
       IP_DOMAIN="$(host $CERTBOT_DOMAIN | awk '/has address/ { print $4 ; exit }')"
       if [ ! -z "$IP_DOMAIN" ]; then
         if [ "$IP_DOMAIN" = "$IP_FRONTEND" ]; then
-          # verify if the certificate exist and is due to renew
-          CERTBOT_FULLCHAIN="/etc/letsencrypt/live/$CERTBOT_DOMAIN/fullchain.pem"
-          [ -e "$CERTBOT_FULLCHAIN" ] && EXPIRE_UNIXTIME=$(date -d "$(openssl x509 -noout -dates -in "$CERTBOT_FULLCHAIN" | grep ^"notAfter=" | sed 's/^notAfter=//')" +%s)
           CERTBOT_DOMAINS_VALID+=" -d $CERTBOT_DOMAIN"
-        else
+         else
           echo "---> WARNING: The resolved IP of $CERTBOT_DOMAIN ($IP_DOMAIN) differ from frontend $CERTBOT_FRONTEND_ADDRESS ($IP_FRONTEND)... skipping certificate request"
         fi
         else
@@ -47,8 +44,10 @@ cat "$1" | while read line; do
     # verify if DNS is configured
     if [ ! -z "$CERTBOT_DOMAINS_VALID" ]; then
         # verify if the certificate exist and is due to renew
-        CERTBOT_FULLCHAIN="/etc/letsencrypt/live/$CERTBOT_DOMAIN_MAIN/fullchain.pem"
+        CERTBOT_DIR="/etc/letsencrypt/live/$CERTBOT_DOMAIN_MAIN"
+        CERTBOT_FULLCHAIN="$CERTBOT_DIR/fullchain.pem"
         if [ -e "$CERTBOT_FULLCHAIN" ]; then
+          CERTBOT_CN="$(openssl x509 -noout -subject -in "$CERTBOT_FULLCHAIN" | sed 's/.*CN = //' | sed 's/\/.*$//')"
           # 2592000 = 30 days
           # 1296000 = 15 days
           # 864000 = 10 days
@@ -58,7 +57,12 @@ cat "$1" | while read line; do
           THRESHOLD_RENEW=604800
           UNIXTIME_EXPIRE=$(date -d "$(openssl x509 -noout -dates -in "$CERTBOT_FULLCHAIN" | grep ^"notAfter=" | sed 's/^notAfter=//')" +%s)
           UNIXTIME_RENEW=$(echo $(date +%s) + $THRESHOLD_RENEW | bc)
-          if [ $UNIXTIME_RENEW -gt $UNIXTIME_EXPIRE ]; then
+          if [ "$CERTBOT_CN" != "$CERTBOT_DOMAIN_MAIN" ]; then
+              echo "---> INFO: Certificate already exist with a wrong CN ($CERTBOT_CN) ricreating it for ($CERTBOT_DOMAIN_MAIN)"
+              echo "---> WARNING: Cleaning a not empty dir: $CERTBOT_DIR"
+              rm -rf "$CERTBOT_DIR"
+              certbotCmd
+          elif [ $UNIXTIME_RENEW -gt $UNIXTIME_EXPIRE ]; then
               echo "---> INFO: MUST RENEW $CERTBOT_DOMAIN_MAIN (expiry on $(date -d @$UNIXTIME_EXPIRE +'%Y-%m-%d %H:%M:%S'))"
               certbotCmd
             else
