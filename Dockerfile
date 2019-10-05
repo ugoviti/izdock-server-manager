@@ -1,4 +1,4 @@
-FROM golang:1.12.7-buster AS gcsfuse
+FROM golang:1.13-buster AS gcsfuse
 ENV GOPATH /go
 RUN set -xe && go get -u github.com/googlecloudplatform/gcsfuse
 
@@ -17,9 +17,8 @@ ENV APP_NAMESPACE     ""
 ENV DEBIAN_FRONTEND   noninteractive
 
 # addons packages versions
-#ENV TINI_VERSION      0.18.0
 # https://www.phpmyadmin.net/downloads/
-ENV PMA_VERSION       4.9.0.1
+ENV PMA_VERSION       4.9.1
 #ENV ZABBIX_VERSION    4.0
 #ENV ZABBIX_BUILD      2
 # install packages
