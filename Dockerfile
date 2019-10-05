@@ -8,7 +8,7 @@ MAINTAINER Ugo Viti <ugo.viti@initzero.it>
 
 # Application post init exported env variables
 ENV APP_NAME          "server-manager"
-ENV APP_DESCRIPTION   "Cloud Server Manager"
+ENV APP_DESCRIPTION   "Cloud Native Server Manager"
 ENV APP_CHART         ""
 ENV APP_RELEASE       ""
 ENV APP_NAMESPACE     ""

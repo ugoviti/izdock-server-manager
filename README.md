@@ -1,10 +1,10 @@
 # Description
-Production ready multi services Server Manager
+Production ready multi services Cloud Native Server Manager
 
 # Supported tags
--	`1.0.6-BUILD`, `1.0.6`, `1.0`, `1`, `latest`
+-	`1.0.X-BUILD`, `1.0.X`, `1.0`, `1`, `latest`
 
-Where **BUILD** is the build number (look into project [Tags](tags/) page to discover the latest BUILD NUMBER)
+Where **X** is the patch version number, and **BUILD** is the build number (look into project [Tags](/repository/docker/izdock/server-manager/tags/) page to discover the latest versions)
 
 # Dockerfile
 - https://github.com/ugoviti/izdock/blob/master/server-manager/Dockerfile
