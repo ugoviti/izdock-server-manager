@@ -37,7 +37,7 @@ cat "$1" | while read line; do
           echo "---> WARNING: The resolved IP of $CERTBOT_DOMAIN ($IP_DOMAIN) differ from frontend $CERTBOT_FRONTEND_ADDRESS ($IP_FRONTEND)... skipping certificate request"
         fi
         else
-          echo "---> WARNING: excluding domain '$CERTBOT_DOMAIN' because could not be resolved by DNS"
+          echo "---> WARNING: Excluding domain $CERTBOT_DOMAIN because could not be resolved by DNS"
       fi
     done < <(echo "$CERTBOT_DOMAIN_ALL" | sed $'s/;/\\\n/g')
 
@@ -66,14 +66,14 @@ cat "$1" | while read line; do
               echo "---> INFO: MUST RENEW $CERTBOT_DOMAIN_MAIN (expiry on $(date -d @$UNIXTIME_EXPIRE +'%Y-%m-%d %H:%M:%S'))"
               certbotCmd
             else
-              echo "---> INFO: NOT RENEW $CERTBOT_DOMAIN_MAIN (expiry on $(date -d @$UNIXTIME_EXPIRE +'%Y-%m-%d %H:%M:%S'))"
+              echo "---> INFO: NOT RENEWING $CERTBOT_DOMAIN_MAIN (expiry on $(date -d @$UNIXTIME_EXPIRE +'%Y-%m-%d %H:%M:%S'))"
           fi
          else
           echo "---> INFO: Generating NEW certificates using webroot '$CERTBOT_WEBROOT' for domains: '$CERTBOT_DOMAINS_VALID'"
           certbotCmd
         fi
       else
-        echo "---> ERROR: not a valid DNS domain found to certificate"
+        echo "---> ERROR: Invalid DNS found for domain $CERTBOT_DOMAIN_MAIN"
     fi
     unset CERTBOT_DOMAINS_VALID
    else
