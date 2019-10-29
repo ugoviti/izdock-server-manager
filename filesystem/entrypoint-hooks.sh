@@ -453,6 +453,7 @@ cfgService_ftp() {
   DefaultRoot       ~ !admins
   AllowOverwrite    on
   WtmpLog           off
+  TimeoutIdle       600
 
   DisplayLogin      /etc/proftpd/.welcome    # Textfile to display on login
   DisplayConnect    /etc/proftpd/.connect    # Textfile to display on connection
