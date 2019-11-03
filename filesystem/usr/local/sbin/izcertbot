@@ -1,7 +1,7 @@
 #!/bin/bash
 # automatic let's encrypt certification via certbot importing domains list from csv
 # author: Ugo Viti <ugo.viti@initzero.it>
-# version: 20190811
+# version: 20191103
 
 CSV_CERTBOT="$1"
 
@@ -44,8 +44,17 @@ cat "$1" | while read line; do
     # verify if DNS is configured
     if [ ! -z "$CERTBOT_DOMAINS_VALID" ]; then
         # verify if the certificate exist and is due to renew
-        CERTBOT_DIR="/etc/letsencrypt/live/$CERTBOT_DOMAIN_MAIN"
-        CERTBOT_FULLCHAIN="$CERTBOT_DIR/fullchain.pem"
+        CERTBOT_DIR="/etc/letsencrypt"
+        CERTBOT_DIR_BACKUP="$CERTBOT_DIR/backup"
+        CERTBOT_DIR_LIVE="$CERTBOT_DIR/live"
+        CERTBOT_DIR_RENEWAL="$CERTBOT_DIR/renewal"
+        CERTBOT_DIR_DOMAIN="$CERTBOT_DIR_LIVE/$CERTBOT_DOMAIN_MAIN"
+        CERTBOT_CONFIG="$CERTBOT_DIR_RENEWAL/$CERTBOT_DOMAIN_MAIN.conf"
+        CERTBOT_FULLCHAIN="$CERTBOT_DIR_DOMAIN/fullchain.pem"
+
+        # make directories that doesn't exist
+        [ ! -e "$CERTBOT_DIR_BACKUP" ] && mkdir -p "$CERTBOT_DIR_BACKUP"
+        
         if [ -e "$CERTBOT_FULLCHAIN" ]; then
           CERTBOT_CN="$(openssl x509 -noout -subject -in "$CERTBOT_FULLCHAIN" | sed 's/.*CN = //' | sed 's/\/.*$//')"
           # 2592000 = 30 days
@@ -59,8 +68,9 @@ cat "$1" | while read line; do
           UNIXTIME_RENEW=$(echo $(date +%s) + $THRESHOLD_RENEW | bc)
           if [ "$CERTBOT_CN" != "$CERTBOT_DOMAIN_MAIN" ]; then
               echo "---> INFO: Certificate already exist with a wrong CN ($CERTBOT_CN) ricreating it for ($CERTBOT_DOMAIN_MAIN)"
-              echo "---> WARNING: Archiving a not empty dir: mv $CERTBOT_DIR $CERTBOT_DIR-$(date +%Y%m%d-%H%M%S)"
-              mv "$CERTBOT_DIR" "$CERTBOT_DIR-$(date +%Y%m%d-%H%M%S)"
+              echo "---> WARNING: Detected an old domain directory. Archiving '$CERTBOT_DIR_DOMAIN' into '$CERTBOT_DIR_BACKUP/$CERTBOT_DIR_DOMAIN-$(date +%Y%m%d-%H%M%S)'"
+              mv "$CERTBOT_DIR_DOMAIN" "$CERTBOT_DIR_BACKUP/$CERTBOT_DOMAIN_MAIN-$(date +%Y%m%d-%H%M%S)"
+              mv "$CERTBOT_CONFIG" "$CERTBOT_DIR_BACKUP/$CERTBOT_DOMAIN_MAIN-$(date +%Y%m%d-%H%M%S)"
               certbotCmd
           elif [ $UNIXTIME_RENEW -gt $UNIXTIME_EXPIRE ]; then
               echo "---> INFO: MUST RENEW $CERTBOT_DOMAIN_MAIN (expiry on $(date -d @$UNIXTIME_EXPIRE +'%Y-%m-%d %H:%M:%S'))"
@@ -69,6 +79,10 @@ cat "$1" | while read line; do
               echo "---> INFO: NOT RENEWING $CERTBOT_DOMAIN_MAIN (expiry on $(date -d @$UNIXTIME_EXPIRE +'%Y-%m-%d %H:%M:%S'))"
           fi
          else
+          if [ -e "$CERTBOT_CONFIG" ]; then
+            echo "---> WARNING: Detected an old config file. Archiving '$CERTBOT_CONFIG' into '$CERTBOT_DIR_BACKUP/$CERTBOT_DOMAIN_MAIN.conf-$(date +%Y%m%d-%H%M%S)'"
+            mv "$CERTBOT_CONFIG" "$CERTBOT_DIR_BACKUP/$CERTBOT_DOMAIN_MAIN.conf-$(date +%Y%m%d-%H%M%S)"
+          fi
           echo "---> INFO: Generating NEW certificates using webroot '$CERTBOT_WEBROOT' for domains: '$CERTBOT_DOMAINS_VALID'"
           certbotCmd
         fi
