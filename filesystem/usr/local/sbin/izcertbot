@@ -52,9 +52,6 @@ cat "$1" | while read line; do
         CERTBOT_CONFIG="$CERTBOT_DIR_RENEWAL/$CERTBOT_DOMAIN_MAIN.conf"
         CERTBOT_FULLCHAIN="$CERTBOT_DIR_DOMAIN/fullchain.pem"
 
-        # make directories that doesn't exist
-        [ ! -e "$CERTBOT_DIR_BACKUP" ] && mkdir -p "$CERTBOT_DIR_BACKUP"
-        
         if [ -e "$CERTBOT_FULLCHAIN" ]; then
           CERTBOT_CN="$(openssl x509 -noout -subject -in "$CERTBOT_FULLCHAIN" | sed 's/.*CN = //' | sed 's/\/.*$//')"
           # 2592000 = 30 days
@@ -69,6 +66,8 @@ cat "$1" | while read line; do
           if [ "$CERTBOT_CN" != "$CERTBOT_DOMAIN_MAIN" ]; then
               echo "---> INFO: Certificate already exist with a wrong CN ($CERTBOT_CN) ricreating it for ($CERTBOT_DOMAIN_MAIN)"
               echo "---> WARNING: Detected an old domain directory. Archiving '$CERTBOT_DIR_DOMAIN' into '$CERTBOT_DIR_BACKUP/$CERTBOT_DIR_DOMAIN-$(date +%Y%m%d-%H%M%S)'"
+              # make directories that doesn't exist
+              [ ! -e "$CERTBOT_DIR_BACKUP" ] && mkdir -p "$CERTBOT_DIR_BACKUP"
               mv "$CERTBOT_DIR_DOMAIN" "$CERTBOT_DIR_BACKUP/$CERTBOT_DOMAIN_MAIN-$(date +%Y%m%d-%H%M%S)"
               mv "$CERTBOT_CONFIG" "$CERTBOT_DIR_BACKUP/$CERTBOT_DOMAIN_MAIN-$(date +%Y%m%d-%H%M%S)"
               certbotCmd
@@ -81,6 +80,8 @@ cat "$1" | while read line; do
          else
           if [ -e "$CERTBOT_CONFIG" ]; then
             echo "---> WARNING: Detected an old config file. Archiving '$CERTBOT_CONFIG' into '$CERTBOT_DIR_BACKUP/$CERTBOT_DOMAIN_MAIN.conf-$(date +%Y%m%d-%H%M%S)'"
+            # make directories that doesn't exist
+            [ ! -e "$CERTBOT_DIR_BACKUP" ] && mkdir -p "$CERTBOT_DIR_BACKUP"
             mv "$CERTBOT_CONFIG" "$CERTBOT_DIR_BACKUP/$CERTBOT_DOMAIN_MAIN.conf-$(date +%Y%m%d-%H%M%S)"
           fi
           echo "---> INFO: Generating NEW certificates using webroot '$CERTBOT_WEBROOT' for domains: '$CERTBOT_DOMAINS_VALID'"
