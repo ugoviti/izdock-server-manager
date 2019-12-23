@@ -18,7 +18,7 @@ ENV DEBIAN_FRONTEND   noninteractive
 
 # addons packages versions
 # https://www.phpmyadmin.net/downloads/
-ENV PMA_VERSION       4.9.1
+ENV PMA_VERSION       5.0.0-rc1
 #ENV ZABBIX_VERSION    4.0
 #ENV ZABBIX_BUILD      2
 # install packages

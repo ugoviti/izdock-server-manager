@@ -1,7 +1,10 @@
 #!/bin/bash
 # automatic let's encrypt certification via certbot importing domains list from csv
 # author: Ugo Viti <ugo.viti@initzero.it>
-# version: 20191103
+# version: 20191223
+
+# certbot csv fields format:
+# frontend_address;email;webroot;domain;additionalDomain1;additionalDomain2;...;additionalDomainN
 
 CSV_CERTBOT="$1"
 
@@ -9,19 +12,24 @@ CSV_CERTBOT="$1"
 : ${CSV_CERTBOT:="/.certbot.csv"} # import ssl domains list using this csv
 
 certbotCmd() {
-  certbot certonly --expand -n --agree-tos --webroot -w "$CERTBOT_WEBROOT" --cert-name $CERTBOT_DOMAIN_MAIN $CERTBOT_DOMAINS_VALID
+  set -x
+  certbot certonly --expand --noninteractive --agree-tos --email "$CERTBOT_EMAIL" --webroot --webroot-path "$CERTBOT_WEBROOT" --cert-name $CERTBOT_DOMAIN_MAIN $CERTBOT_DOMAINS_VALID
+  set +x
 }
 
 addCSVLetsEncrypt() {
 #if [ -z "$1" ] || [ ! -e "$1" ]; then echo "unable to fine input file $file. exiting..." && exit 1 ; fi
 
 cat "$1" | while read line; do
-  # csv fields order: webroot;domain;additionalDomain1;additionalDomain2;...;additionalDomainN
   CERTBOT_FRONTEND_ADDRESS="$(echo "$line" | cut -d';' -f1)"
-  CERTBOT_WEBROOT="$(echo "$line" | cut -d';' -f2)"
-  CERTBOT_DOMAIN_MAIN="$(echo "$line" | cut -d';' -f3)"
-  CERTBOT_DOMAIN_ALIAS="$(echo "$line" | cut -d';' -f4-)"
+  CERTBOT_EMAIL="$(echo "$line" | cut -d';' -f2)"
+  CERTBOT_WEBROOT="$(echo "$line" | cut -d';' -f3)"
+  CERTBOT_DOMAIN_MAIN="$(echo "$line" | cut -d';' -f4)"
+  CERTBOT_DOMAIN_ALIAS="$(echo "$line" | cut -d';' -f5-)"
   CERTBOT_DOMAIN_ALL="${CERTBOT_DOMAIN_MAIN}$([ ! -z "$CERTBOT_DOMAIN_ALIAS" ] && echo ";$CERTBOT_DOMAIN_ALIAS")"
+  
+  # default variables if empty
+  [ -z "$CERTBOT_EMAIL" ] && $CERTBOT_EMAIL="root@localhost.localdomain"
   
   echo "==> Verifying SSL certificates for domains: '$CERTBOT_DOMAIN_ALL'"
   if [ -e "$CERTBOT_WEBROOT" ] ; then
