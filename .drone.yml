@@ -10,13 +10,16 @@ steps:
 - name: setup
   image: alpine
   environment: &setup_env
-    IMAGE_FROM: debian:buster-slim
     APP_VER_MAJOR: 1
     APP_VER_MINOR: 0
     APP_VER_PATCH: 13
   commands:
     - echo "$${APP_VER_MAJOR}.$${APP_VER_MINOR}.$${APP_VER_PATCH}-$${DRONE_BUILD_NUMBER}" > VERSION
-    - echo "latest,$${APP_VER_MAJOR},$${APP_VER_MAJOR}.$${APP_VER_MINOR},$${APP_VER_MAJOR}.$${APP_VER_MINOR}.$${APP_VER_PATCH},$${APP_VER_MAJOR}.$${APP_VER_MINOR}.$${APP_VER_PATCH}-$${DRONE_BUILD_NUMBER}" > .tags
+    - echo -e -n "$${APP_VER_MAJOR}" > .tags
+    - echo -e -n ",$${APP_VER_MAJOR}.$${APP_VER_MINOR}" >> .tags
+    - echo -e -n ",$${APP_VER_MAJOR}.$${APP_VER_MINOR}.$${APP_VER_PATCH}" >> .tags
+    - echo -e -n ",$${APP_VER_MAJOR}.$${APP_VER_MINOR}.$${APP_VER_PATCH}-$${DRONE_BUILD_NUMBER}" >> .tags
+    - echo -e -n ",latest" >> .tags 
 
 - name: publish
   image: plugins/docker
@@ -24,15 +27,10 @@ steps:
     <<: *setup_env
   settings:
     repo: izdock/server-manager
-#    use_cache: true
     username:
       from_secret: docker_username
     password:
       from_secret: docker_password
-    build_args_from_env:
-    - IMAGE_FROM
-    - APP_VER_MAJOR
-    - APP_VER_MINOR
   volumes:
   - name: docker
     path: /var/lib/docker
