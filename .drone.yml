@@ -1,0 +1,43 @@
+kind: pipeline
+name: default
+
+volumes:
+  - name: docker
+    host:
+      path: /var/cache/drone/${DRONE_REPO}/${DRONE_STAGE_NAME}
+
+steps:
+- name: setup
+  image: alpine
+  environment: &setup_env
+    IMAGE_FROM: debian:buster-slim
+    APP_VER_MAJOR: 1
+    APP_VER_MINOR: 0
+    APP_VER_PATCH: 13
+  commands:
+    - echo "latest,$${APP_VER_MAJOR},$${APP_VER_MAJOR}.$${APP_VER_MINOR},$${APP_VER_MAJOR}.$${APP_VER_MINOR}-$${DRONE_BUILD_NUMBER}" > .tags
+    - echo "$${APP_VER_MAJOR}.$${APP_VER_MINOR}-$${DRONE_BUILD_NUMBER}" > VERSION
+
+- name: publish
+  image: plugins/docker
+  environment:
+    <<: *setup_env
+  settings:
+    repo: izdock/server-manager
+#    cache_from: izdock/server-manager:latest
+    use_cache: true
+    username:
+      from_secret: docker_username
+    password:
+      from_secret: docker_password
+    build_args_from_env:
+    - IMAGE_FROM
+    - APP_VER_MAJOR
+    - APP_VER_MINOR
+  volumes:
+  - name: docker
+    path: /var/lib/docker
+  when:
+    event: [push, tag]
+    branch: master
+    
