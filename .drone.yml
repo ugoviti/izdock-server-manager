@@ -24,8 +24,7 @@ steps:
     <<: *setup_env
   settings:
     repo: izdock/server-manager
-#    cache_from: izdock/server-manager:latest
-    use_cache: true
+#    use_cache: true
     username:
       from_secret: docker_username
     password:
@@ -40,4 +39,3 @@ steps:
   when:
     event: [push, tag]
     branch: master
-    
