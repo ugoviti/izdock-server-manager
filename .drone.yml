@@ -14,12 +14,12 @@ steps:
     APP_VER_MINOR: 0
     APP_VER_PATCH: 13
   commands:
-    - echo "$${APP_VER_MAJOR}.$${APP_VER_MINOR}.$${APP_VER_PATCH}-$${DRONE_BUILD_NUMBER}" > VERSION
+    - echo -e -n "$${APP_VER_MAJOR}.$${APP_VER_MINOR}.$${APP_VER_PATCH}-$${DRONE_BUILD_NUMBER}" > VERSION
     - echo -e -n "$${APP_VER_MAJOR}" > .tags
     - echo -e -n ",$${APP_VER_MAJOR}.$${APP_VER_MINOR}" >> .tags
     - echo -e -n ",$${APP_VER_MAJOR}.$${APP_VER_MINOR}.$${APP_VER_PATCH}" >> .tags
     - echo -e -n ",$${APP_VER_MAJOR}.$${APP_VER_MINOR}.$${APP_VER_PATCH}-$${DRONE_BUILD_NUMBER}" >> .tags
-    - echo -e -n ",latest" >> .tags 
+    - echo -e -n ",latest" >> .tags
 
 - name: publish
   image: plugins/docker
