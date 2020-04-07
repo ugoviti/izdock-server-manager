@@ -1,5 +1,3 @@
-[![Build Status](https://ci.initzero.it/api/badges/initzero/izdock-server-manager/status.svg)](https://ci.initzero.it/initzero/izdock-server-manager)
-
 # Description
 Production ready multi services Cloud Native Server Manager
 

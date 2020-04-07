@@ -171,7 +171,7 @@ RUN set -xe \
   && chmod 700 /root/.ssh
 
 # define volumes
-VOLUME	[ "/var/spool/cron/crontabs", "/var/spool/postfix", "/etc/postfix" ]
+VOLUME [ "/var/spool/cron/crontabs", "/var/spool/postfix", "/etc/postfix" ]
 
 # exposed ports
 EXPOSE ${SSH_PORT}/tcp ${FTP_PORT}/tcp ${FTP_FTPS_PORT}/tcp ${FTP_SFTP_PORT}/tcp ${FTP_PASV_MIN}-${FTP_PASV_MAX}/tcp ${HTTPD_PORT}/tcp
