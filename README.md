@@ -7,7 +7,7 @@ Production ready multi services Cloud Native Server Manager
 Where **X** is the patch version number, and **BUILD** is the build number (look into project [Tags](/repository/docker/izdock/server-manager/tags/) page to discover the latest versions)
 
 # Dockerfile
-- https://github.com/ugoviti/izdock/blob/master/server-manager/Dockerfile
+- https://github.com/ugoviti/izdock-server-manager/blob/master/Dockerfile
 
 # Features
 - Small image footprint (based on **slim** version of [Linux Debian](/_/debian/) **buster** image)
