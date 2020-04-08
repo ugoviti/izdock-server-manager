@@ -818,7 +818,8 @@ hooks_always() {
 echo "=> Executing $APP_DESCRIPTION configuration hooks 'always'..."
 
 # save docker variables for later usage
-for var in APP_NAME APP_DESCRIPTION APP_CHART APP_RELEASE APP_NAMESPACE; do eval echo $var='\"$(eval echo \$$var)\"' ; done >> /.dockerenv
+[ -e "/VERSION" ] && APP_VER="$(cat /VERSION)"
+for var in APP_NAME APP_VER APP_DESCRIPTION APP_CHART APP_RELEASE APP_NAMESPACE; do eval echo $var='\"$(eval echo \$$var)\"' ; done >> /.dockerenv
 
 ## docker init commands
 # reset root user .ssh directory permissions
@@ -836,7 +837,7 @@ rm -f /etc/motd /etc/update-motd.d/10-uname
 echo -E '#!/bin/sh
 . /.dockerenv
 export TERM=xterm-256color
-echo "$(tput setaf 214)$APP_DESCRIPTION$(tput sgr0) :: $([ -n "$APP_CHART" ] && echo chart:[$(tput setaf 14)$APP_CHART$(tput sgr0)]) $([ -n "$APP_RELEASE" ] && echo release:[$(tput setaf 14)$APP_RELEASE$(tput sgr0)]) $([ -n "$APP_NAMESPACE" ] && echo namespace:[$(tput setaf 14)$APP_NAMESPACE$(tput sgr0)])"' > /etc/update-motd.d/10-server-manager && chmod 755 /etc/update-motd.d/10-server-manager;
+echo "$(tput setaf 214)$APP_DESCRIPTION v$APP_VER$(tput sgr0) :: $([ -n "$APP_CHART" ] && echo chart:[$(tput setaf 14)$APP_CHART$(tput sgr0)]) $([ -n "$APP_RELEASE" ] && echo release:[$(tput setaf 14)$APP_RELEASE$(tput sgr0)]) $([ -n "$APP_NAMESPACE" ] && echo namespace:[$(tput setaf 14)$APP_NAMESPACE$(tput sgr0)])"' > /etc/update-motd.d/10-server-manager && chmod 755 /etc/update-motd.d/10-server-manager;
 
 # colorize bash prompt and vars
 echo -E '## initZero customizations
