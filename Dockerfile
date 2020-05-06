@@ -81,7 +81,7 @@ RUN set -xe \
     nagios-nrpe-server \
     monitoring-plugins \
     certbot \
-    #sysbench \
+    tree \
     # install mariadb 10.2 because in default 10.3 exist this problem https://jira.mariadb.org/browse/MDEV-17429
     mariadb-client-10.2 \
     #mariadb-client \
@@ -89,9 +89,8 @@ RUN set -xe \
     zabbix-agent \
     php php-common php-cli php-json php-mysql php-zip php-gd php-mbstring php-curl php-xml php-bcmath php-json php-bz2 php-mbstring libapache2-mod-php \
   # sysbench
-  #&& curl -fSL --connect-timeout 30 http://ftp.debian.org/debian/pool/main/s/sysbench/sysbench_0.4.12-1.2_amd64.deb -o /tmp/sysbench_0.4.12-1.2_amd64.deb \
-  #&& apt-get install -y --no-install-recommends /tmp/sysbench_0.4.12-1.2_amd64.deb \
-  #&& rm -f /tmp/sysbench_0.4.12-1.2_amd64.deb \
+  && curl -fSL --connect-timeout 30 https://packagecloud.io/install/repositories/akopytov/sysbench/script.deb.sh | sudo bash \
+  && sudo apt -y install sysbench \
   # phpmyadmin config
   && mkdir -p /var/www/html/admin/pma \
   && curl -fSL --connect-timeout 30 https://files.phpmyadmin.net/phpMyAdmin/${PMA_VERSION}/phpMyAdmin-${PMA_VERSION}-all-languages.tar.gz | tar -xz -C /var/www/html/admin/pma --strip-components=1 \
