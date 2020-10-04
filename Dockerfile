@@ -13,6 +13,10 @@ ENV APP_CHART         ""
 ENV APP_RELEASE       ""
 ENV APP_NAMESPACE     ""
 
+# full app version
+ARG APP_VER
+ENV APP_VER "${APP_VER}"
+
 # debian apt warnings workaround
 ENV DEBIAN_FRONTEND   noninteractive
 
