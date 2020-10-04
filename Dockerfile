@@ -1,4 +1,4 @@
-FROM golang:1.13-buster AS gcsfuse
+FROM golang:1.15-buster AS gcsfuse
 ENV GOPATH /go
 RUN set -xe && go get -u github.com/googlecloudplatform/gcsfuse
 
