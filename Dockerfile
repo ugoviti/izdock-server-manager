@@ -177,13 +177,24 @@ VOLUME [ "/var/spool/cron/crontabs", "/var/spool/postfix", "/etc/postfix" ]
 # exposed ports
 EXPOSE ${SSH_PORT}/tcp ${FTP_PORT}/tcp ${FTP_FTPS_PORT}/tcp ${FTP_SFTP_PORT}/tcp ${FTP_PASV_MIN}-${FTP_PASV_MAX}/tcp ${HTTPD_PORT}/tcp
 
-# container pre-entrypoint variables
-ENV MULTISERVICE    "false"
-ENV ENTRYPOINT_TINI "true"
-ENV UMASK           0002
-
 # add files to container
-ADD Dockerfile filesystem VERSION README.md /
+ADD Dockerfile filesystem README.md /
+
+# container pre-entrypoint variables
+ENV APP_RUNAS          "false"
+ENV MULTISERVICE       "false"
+ENV ENTRYPOINT_TINI    "true"
+ENV UMASK              0002
+
+## CI args
+ARG APP_VER_BUILD
+ARG APP_BUILD_COMMIT
+ARG APP_BUILD_DATE
+
+# define other build variables
+ENV APP_VER_BUILD    "${APP_VER_BUILD}"
+ENV APP_BUILD_COMMIT "${APP_BUILD_COMMIT}"
+ENV APP_BUILD_DATE   "${APP_BUILD_DATE}"
 
 # start the container process
 ENTRYPOINT ["/entrypoint.sh"]
