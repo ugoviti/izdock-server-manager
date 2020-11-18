@@ -653,10 +653,13 @@ cfgService_pma() {
 # let's encrypt / certbot service
 cfgService_certbot() {
   echo "=> Generating Let's Encrypt SSL Certificates from CSV '$CSV_CERTBOT'..."
+  
+  [ ! -e "$CSV_CERTBOT" ] && echo "=> INFO: The Let's Encrypt CSV file '$CSV_CERTBOT' doesn't exist... waiting 30 seconds before continue" && sleep 30
+  
   if [ -e "$CSV_CERTBOT" ] && [ ! -z "$(cat "$CSV_CERTBOT")" ] ; then
     izcertbot "$CSV_CERTBOT"
   else
-    echo "No CSV_CERTBOT variable found, or file is empty. skipping SSL certificate creation..."
+    echo "--> The '$CSV_CERTBOT' file is empty, or no CSV_CERTBOT variable defined. skipping SSL certificate creation..."
   fi
 }
 
@@ -912,6 +915,7 @@ chkService HTTPD_ENABLED
 chkService POSTFIX_ENABLED
 [ "${MTA_ENABLED}" = "true" ] && cfgService_mta
 [ "${PMA_ENABLED}" = "true" ] && cfgService_pma
+[ "${CERTBOT_ENABLED}" = "true" ] && cfgService_certbot
 
 ## rc.local compatibility script
 [ -e "/etc/rc.local" ] && echo "=> Executing /etc/rc.local" && /etc/rc.local
@@ -942,9 +946,6 @@ if [ "$CSV_IMPORT" = "true" ]; then
       echo "=> INFO: The users CSV file '$CSV_USERS' doesn't exist... not importing"
   fi
 fi
-
-# certBot management
-[ "${CERTBOT_ENABLED}" = "true" ] && cfgService_certbot
 
 ## final messages
 echo "========================================================================"
