@@ -912,7 +912,6 @@ chkService HTTPD_ENABLED
 chkService POSTFIX_ENABLED
 [ "${MTA_ENABLED}" = "true" ] && cfgService_mta
 [ "${PMA_ENABLED}" = "true" ] && cfgService_pma
-[ "${CERTBOT_ENABLED}" = "true" ] && cfgService_certbot
 
 ## rc.local compatibility script
 [ -e "/etc/rc.local" ] && echo "=> Executing /etc/rc.local" && /etc/rc.local
@@ -943,6 +942,9 @@ if [ "$CSV_IMPORT" = "true" ]; then
       echo "=> INFO: The users CSV file '$CSV_USERS' doesn't exist... not importing"
   fi
 fi
+
+# certBot management
+[ "${CERTBOT_ENABLED}" = "true" ] && cfgService_certbot
 
 ## final messages
 echo "========================================================================"
