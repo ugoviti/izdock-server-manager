@@ -627,7 +627,7 @@ cfgService_httpd() {
   elif [ "$OS_RELEASE" = "alpine" ]; then
     sed "s/^#ServerName.*/ServerName ${SERVERNAME}/" -i "${HTTPD_CONF_DIR}/httpd.conf"
   fi
-  }
+}
 
 ## phpmyadmin service
 cfgService_pma() {
