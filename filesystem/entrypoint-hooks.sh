@@ -218,8 +218,15 @@ done
 ## syslog service
 cfgService_syslog() {
   # rsyslog daemon support
-  echo '$ModLoad immark.so
-$ModLoad imuxsock.so
+  echo '# rsyslog config file
+# Use default timestamp format
+module(load="builtin:omfile" Template="RSYSLOG_TraditionalFileFormat")
+module(load="imuxsock"    # provides support for local system logging (e.g. via logger command)
+       SysSock.Use="off") # Turn off message reception via local log socket; 
+                          # local messages are retrieved through imjournal now.
+module(load="imjournal"             # provides access to the systemd journal
+       StateFile="imjournal.state") # File to store the position in the journal
+
 # default permissions for all log files.
 $FileOwner root
 $FileGroup adm
