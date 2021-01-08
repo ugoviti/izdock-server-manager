@@ -260,9 +260,15 @@ cfgService_cron() {
 
 ## ssh service
 cfgService_ssh() {
+  echo "---> Enabling root login"
   sed "s/#PermitRootLogin.*/PermitRootLogin ${SSH_PERMIT_ROOT:-no}/" -i /etc/ssh/sshd_config
+
+  echo "---> Changing listening to: ${SSH_PORT:-22}"
   sed "s/#Port.*/Port ${SSH_PORT:-22}/" -i /etc/ssh/sshd_config
 
+  echo "---> Enabling GatewayPorts"
+  sed "s/#GatewayPorts.*/GatewayPorts clientspecified/" -i /etc/ssh/sshd_config
+  
   # replace rsa key if needed
   if [ ! -z "$SSH_SSL_KEYS_DIR" ];then
      if [ ! -e "$SSH_SSL_KEYS_DIR/ssh_host_rsa_key" ];then
