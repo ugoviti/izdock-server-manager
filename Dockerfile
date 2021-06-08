@@ -101,7 +101,8 @@ RUN set -xe \
     mariadb-client-10.2 \
     #mariadb-client \
     mc \
-    zabbix-agent \
+    zabbix-agent2 \
+    zabbix-sender \
     php php-common php-cli php-json php-mysql php-zip php-gd php-mbstring php-curl php-xml php-bcmath php-json php-bz2 php-mbstring libapache2-mod-php \
   # sysbench
   && curl -fSL --connect-timeout 30 https://packagecloud.io/install/repositories/akopytov/sysbench/script.deb.sh | sudo bash \
