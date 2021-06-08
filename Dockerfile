@@ -1,4 +1,6 @@
-FROM golang:1.15-buster AS gcsfuse
+# docker build --pull --rm --build-arg APP_DEBUG=1 --build-arg APP_VER_BUILD=1 --build-arg APP_BUILD_COMMIT=fffffff --build-arg APP_BUILD_DATE=$(date +%s) .
+
+FROM golang:1.16.5-buster AS gcsfuse
 ENV GOPATH /go
 RUN set -xe && go get -u github.com/googlecloudplatform/gcsfuse
 
@@ -22,9 +24,11 @@ ENV DEBIAN_FRONTEND   noninteractive
 
 # addons packages versions
 # https://www.phpmyadmin.net/downloads/
-ENV PMA_VERSION       5.1.0
-#ENV ZABBIX_VERSION    4.0
+ENV PMA_VERSION       5.1.1
+
+ENV ZABBIX_VERSION    5.4
 #ENV ZABBIX_BUILD      2
+
 # install packages
 RUN set -xe \
   # install curl and update ca certificates
@@ -32,7 +36,10 @@ RUN set -xe \
   && update-ca-certificates \
   # install mariadb 10.2 because in default 10.3 exist this problem https://jira.mariadb.org/browse/MDEV-17429
   && apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 0xF1656F24C74CD1D8 \
-  && add-apt-repository 'deb [arch=amd64] http://mirror.biznetgio.com/mariadb/repo/10.2/debian stretch main' \
+  && add-apt-repository "deb [arch=amd64] http://mirror.biznetgio.com/mariadb/repo/10.2/debian stretch main" \
+  # add zabbix official repository
+  && curl -fSL --connect-timeout 30 http://repo.zabbix.com/zabbix/${ZABBIX_VERSION}/debian/pool/main/z/zabbix-release/zabbix-release_${ZABBIX_VERSION}-1+debian10_all.deb -o zabbix-release_${ZABBIX_VERSION}-1+debian10_all.deb \
+  && dpkg -i zabbix-release_${ZABBIX_VERSION}-1+debian10_all.deb && rm -f zabbix-release_${ZABBIX_VERSION}-1+debian10_all.deb \
   # upgrade the system
   && apt-get update && apt-get upgrade -y \
   # instal all needed packages
