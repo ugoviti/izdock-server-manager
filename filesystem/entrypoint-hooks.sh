@@ -50,7 +50,7 @@ PASSWORD_TYPE="$([ ${ROOT_PASSWORD} ] && echo preset || echo random)"
 : ${ZABBIX_HOSTMETADATA:="Linux"}
 
 ## service name mapping
-: ${ZABBIX_DAEMON:="zabbix-agent"}
+: ${ZABBIX_DAEMON:="zabbix-agent2"}
 : ${SSH_DAEMON:="sshd"}
 : ${FTP_DAEMON:="proftpd"}
 : ${SYSLOG_DAEMON:="rsyslog"}
@@ -97,8 +97,8 @@ if   [ "$OS_RELEASE" = "debian" ]; then
 : ${PHP_CONF:="/etc/php/7.3/apache2/php.ini"}
 : ${NRPE_CONF:="/etc/nagios/nrpe.cfg"}
 : ${NRPE_CONF_LOCAL:="/etc/nagios/nrpe_local.cfg"}
-: ${ZABBIX_CONF:="/etc/zabbix/zabbix_agentd.conf"}
-: ${ZABBIX_CONF_LOCAL:="/etc/zabbix/zabbix_agentd.conf.d/local.conf"}
+: ${ZABBIX_CONF:="/etc/zabbix/zabbix_agent2.conf"}
+: ${ZABBIX_CONF_LOCAL:="/etc/zabbix/zabbix_agent2.d/local.conf"}
 elif [ "$OS_RELEASE" = "alpine" ]; then
 # alpine paths
 : ${SUPERVISOR_DIR:="/etc/supervisor.d"}
