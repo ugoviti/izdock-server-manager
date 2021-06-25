@@ -1,0 +1,10 @@
+#!/bin/sh
+echo "--> Starting dbus"
+if [ ! -x /var/run/dbus ] ; then
+    # debian
+    install -m755 -g messagebus -o messagebus -d /var/run/dbus
+fi
+rm -f /var/run/dbus/*
+rm -f /var/run/messagebus.pid
+/usr/bin/dbus-uuidgen --ensure
+/usr/bin/dbus-daemon --system --nofork --nopidfile --systemd-activation

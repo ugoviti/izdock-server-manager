@@ -835,6 +835,9 @@ echo "=> Executing $APP_DESCRIPTION configuration hooks 'always'..."
 [ -e "/VERSION" ] && APP_VER="$(cat /VERSION)"
 for var in APP_NAME APP_VER APP_DESCRIPTION APP_CHART APP_RELEASE APP_NAMESPACE; do eval echo $var='\"$(eval echo \$$var)\"' ; done >> /.dockerenv
 
+# ImageMagick fix for: ERROR: attempt to perform an operation not allowed by the security policy `PDF' @ error/constitute.c/IsCoderAuthorized/408
+sed -i '/disable ghostscript format types/,+6d' /etc/ImageMagick-6/policy.xml
+
 ## docker init commands
 # reset root user .ssh directory permissions
 [ -e "/root/.ssh" ] && chmod 750 "/root/.ssh"
