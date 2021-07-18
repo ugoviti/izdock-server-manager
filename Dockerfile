@@ -101,6 +101,7 @@ RUN set -xe \
     ghostscript \
     zbar-tools \
     dbus \
+    composer \
     # install mariadb 10.2 because in default 10.3 exist this problem https://jira.mariadb.org/browse/MDEV-17429
     mariadb-client-10.2 \
     #mariadb-client \
