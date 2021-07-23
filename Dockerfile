@@ -29,6 +29,8 @@ ENV PMA_VERSION       5.1.1
 ENV ZABBIX_VERSION    5.4
 #ENV ZABBIX_BUILD      2
 
+ADD files /tmp
+
 # install packages
 RUN set -xe \
   # install curl and update ca certificates
@@ -117,6 +119,11 @@ RUN set -xe \
   && curl -fSL --connect-timeout 30 https://files.phpmyadmin.net/phpMyAdmin/${PMA_VERSION}/phpMyAdmin-${PMA_VERSION}-all-languages.tar.gz | tar -xz -C /var/www/html/admin/pma --strip-components=1 \
   # apache config
   && mkdir -p /run/apache2 \
+  # install synbak
+  && dpkg -i /tmp/synbak*.deb \
+  && rm -f /tmp/synbak*.deb \
+  # fix bash path
+  && ln -s /bin/bash /usr/bin/bash \
   # postfix config
   && mkdir -p /var/spool/postfix/ \
   && mkdir -p /var/spool/postfix/pid \
