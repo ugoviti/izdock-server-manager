@@ -32,20 +32,25 @@ ENV ZABBIX_VERSION    5.4
 ADD files /tmp
 
 # install packages
-RUN set -xe \
+RUN set -xe && \
   # install curl and update ca certificates
-  && apt-get update && apt-get install -y --no-install-recommends curl ca-certificates apt-utils gnupg software-properties-common dirmngr \
-  && update-ca-certificates \
+  apt-get update && apt-get install -y --no-install-recommends curl ca-certificates apt-utils gnupg software-properties-common dirmngr && \
+  update-ca-certificates && \
   # install mariadb 10.2 because in default 10.3 exist this problem https://jira.mariadb.org/browse/MDEV-17429
-  && apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 0xF1656F24C74CD1D8 \
-  && add-apt-repository "deb [arch=amd64] http://mirror.biznetgio.com/mariadb/repo/10.2/debian stretch main" \
+  apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 0xF1656F24C74CD1D8 && \
+  add-apt-repository "deb [arch=amd64] http://mirror.biznetgio.com/mariadb/repo/10.2/debian stretch main" && \
+  # install mysql 8
+  curl -fSL --connect-timeout 30 https://repo.mysql.com/mysql-apt-config_0.8.17-1_all.deb -o /tmp/mysql-apt-config_0.8.17-1_all.deb && \
+  echo mysql-apt-config mysql-apt-config/select-server select mysql-8.0 | sudo debconf-set-selections && \
+  dpkg -i /tmp/mysql-apt-config_0.8.17-1_all.deb && \
+  rm -f /tmp/mysql-apt-config_0.8.17-1_all.deb && \
   # add zabbix official repository
-  && curl -fSL --connect-timeout 30 http://repo.zabbix.com/zabbix/${ZABBIX_VERSION}/debian/pool/main/z/zabbix-release/zabbix-release_${ZABBIX_VERSION}-1+debian10_all.deb -o zabbix-release_${ZABBIX_VERSION}-1+debian10_all.deb \
-  && dpkg -i zabbix-release_${ZABBIX_VERSION}-1+debian10_all.deb && rm -f zabbix-release_${ZABBIX_VERSION}-1+debian10_all.deb \
+  curl -fSL --connect-timeout 30 http://repo.zabbix.com/zabbix/${ZABBIX_VERSION}/debian/pool/main/z/zabbix-release/zabbix-release_${ZABBIX_VERSION}-1+debian10_all.deb -o zabbix-release_${ZABBIX_VERSION}-1+debian10_all.deb && \
+  dpkg -i zabbix-release_${ZABBIX_VERSION}-1+debian10_all.deb && rm -f zabbix-release_${ZABBIX_VERSION}-1+debian10_all.deb && \
   # upgrade the system
-  && apt-get update && apt-get upgrade -y \
+  apt-get update && apt-get upgrade -y && \
   # instal all needed packages
-  && apt-get install -y --no-install-recommends \
+  apt-get install -y --no-install-recommends \
     tini \
     bash \
     coreutils \
@@ -104,34 +109,37 @@ RUN set -xe \
     zbar-tools \
     dbus \
     composer \
+    # mysql clients
+    mysql-community-client \
     # install mariadb 10.2 because in default 10.3 exist this problem https://jira.mariadb.org/browse/MDEV-17429
-    mariadb-client-10.2 \
+    #mariadb-client-10.2 \
     #mariadb-client \
     mc \
     zabbix-agent2 \
     zabbix-sender \
     php php-common php-cli php-json php-mysql php-zip php-gd php-mbstring php-curl php-xml php-bcmath php-json php-bz2 php-mbstring libapache2-mod-php \
+    && \
   # sysbench
-  && curl -fSL --connect-timeout 30 https://packagecloud.io/install/repositories/akopytov/sysbench/script.deb.sh | sudo bash \
-  && sudo apt -y install sysbench \
+  curl -fSL --connect-timeout 30 https://packagecloud.io/install/repositories/akopytov/sysbench/script.deb.sh | sudo bash && \
+  sudo apt -y install sysbench && \
   # phpmyadmin config
-  && mkdir -p /var/www/html/admin/pma \
-  && curl -fSL --connect-timeout 30 https://files.phpmyadmin.net/phpMyAdmin/${PMA_VERSION}/phpMyAdmin-${PMA_VERSION}-all-languages.tar.gz | tar -xz -C /var/www/html/admin/pma --strip-components=1 \
+  mkdir -p /var/www/html/admin/pma && \
+  curl -fSL --connect-timeout 30 https://files.phpmyadmin.net/phpMyAdmin/${PMA_VERSION}/phpMyAdmin-${PMA_VERSION}-all-languages.tar.gz | tar -xz -C /var/www/html/admin/pma --strip-components=1 && \
   # apache config
-  && mkdir -p /run/apache2 \
+  mkdir -p /run/apache2 && \
   # install synbak
-  && dpkg -i /tmp/synbak*.deb \
-  && rm -f /tmp/synbak*.deb \
+  dpkg -i /tmp/synbak*.deb && \
+  rm -f /tmp/synbak*.deb && \
   # fix bash path
-  && ln -s /bin/bash /usr/bin/bash \
+  ln -s /bin/bash /usr/bin/bash && \
   # postfix config
-  && mkdir -p /var/spool/postfix/ \
-  && mkdir -p /var/spool/postfix/pid \
-  && chown root: /var/spool/postfix/ \
-  && chown root: /var/spool/postfix/pid \
+  mkdir -p /var/spool/postfix/ && \
+  mkdir -p /var/spool/postfix/pid && \
+  chown root: /var/spool/postfix/ && \
+  chown root: /var/spool/postfix/pid && \
   # cleanup system
-  && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
-  && rm -rf /var/lib/apt/lists/* /tmp/*
+  apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false && \
+  rm -rf /var/lib/apt/lists/* /tmp/*
 
 # install gcsfuse
 COPY --from=gcsfuse /go/bin/gcsfuse /usr/local/bin/
