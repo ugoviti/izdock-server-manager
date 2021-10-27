@@ -119,7 +119,9 @@ RUN set -xe && \
   # add repo sysbench
   curl -fSL --connect-timeout 30 https://packagecloud.io/install/repositories/akopytov/sysbench/script.deb.sh | bash && \
   \
+  # update apt cache
   apt update && \
+  \
   # install mariadb 10.2
   #apt -y install mariadb-client mariadb-client-10.2 && \
   # install mysql 8
