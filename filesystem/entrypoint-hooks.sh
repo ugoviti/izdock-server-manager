@@ -863,7 +863,6 @@ echo -E '## initZero customizations
 
 PATH=$PATH:~/bin
 
-#NAMESPACE="$APP_NAMESPACE"
 HISTSIZE=1000000
 HISTFILESIZE=2000000
 
@@ -885,14 +884,16 @@ fi
 # InitZero deploy namespace management
 DOMAIN="$(cat /etc/resolv.conf | grep ^search | cut -d" " -f2)"
 NAMESPACE="${DOMAIN%%.*}"
+#NAMESPACE="$APP_NAMESPACE"
+DEPLOY="$APP_RELEASE"
+
+if [ ! -z "$CUSTOMER" ]; then PS1_CUSTOMER="($CUSTOMER)"; fi
 
 case $NAMESPACE in
   prod) PS1_NAMESPACE="\[\e[1;31m\].$NAMESPACE\[\e[m\]" ;;
   test) PS1_NAMESPACE="\[\e[1;32m\].$NAMESPACE\[\e[m\]" ;;
   *)    PS1_NAMESPACE="\[\e[1;36m\].$NAMESPACE\[\e[m\]" ;;
 esac
-
-if [ ! -z "$CUSTOMER" ]; then PS1_CUSTOMER="($CUSTOMER)"; fi
 
 # colors management: more info from https://wiki.archlinux.org/index.php/Bash/Prompt_customization_(Italiano)
 case "$TERM" in
