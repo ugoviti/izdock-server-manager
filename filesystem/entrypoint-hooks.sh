@@ -855,7 +855,7 @@ rm -f /etc/motd /etc/update-motd.d/10-uname
 echo -E '#!/bin/sh
 . /.dockerenv
 export TERM=xterm-256color
-echo "$(tput setaf 214)$APP_DESCRIPTION$(tput sgr0) :: $([ -n "$CUSTOMER" ] && echo chart:[$(tput setaf 14)$CUSTOMER$(tput sgr0)]) $([ -n "$APP_CHART" ] && echo chart:[$(tput setaf 14)$APP_CHART$(tput sgr0)]) $([ -n "$APP_RELEASE" ] && echo release:[$(tput setaf 14)$APP_RELEASE$(tput sgr0)]) $([ -n "$APP_NAMESPACE" ] && echo namespace:[$(tput setaf 14)$APP_NAMESPACE$(tput sgr0)])"' > /etc/update-motd.d/10-server-manager && chmod 755 /etc/update-motd.d/10-server-manager;
+echo "$(tput setaf 214)$APP_DESCRIPTION$(tput sgr0) :: $([ -n "$CUSTOMER" ] && echo customer:[$(tput setaf 14)$CUSTOMER$(tput sgr0)]) $([ -n "$APP_RELEASE" ] && echo release:[$(tput setaf 14)$APP_RELEASE$(tput sgr0)]) $([ -n "$APP_NAMESPACE" ] && echo namespace:[$(tput setaf 14)$APP_NAMESPACE$(tput sgr0)]) $([ -n "$APP_CHART" ] && echo chart:[$(tput setaf 14)$APP_CHART$(tput sgr0)])"' > /etc/update-motd.d/10-server-manager && chmod 755 /etc/update-motd.d/10-server-manager;
 
 # colorize bash prompt and vars
 echo -E '## initZero customizations
@@ -892,16 +892,16 @@ case $NAMESPACE in
   *)    PS1_NAMESPACE="\[\e[1;36m\].$NAMESPACE\[\e[m\]" ;;
 esac
 
-if [ ! -z "$CUSTOMER" ]; then PS1_CUSTOMER="(${CUSTOMER})\e[1;34m\"; fi
+if [ ! -z "$CUSTOMER" ]; then PS1_CUSTOMER="($CUSTOMER)"; fi
 
 # colors management: more info from https://wiki.archlinux.org/index.php/Bash/Prompt_customization_(Italiano)
 case "$TERM" in
     xterm-color|*-256color)
       color_prompt=yes
       if [ $(id -u) -eq 0 ];then
-        export PS1="${PS1_CUSTOMER}[\e[32m\][\[\e[m\]\[\e[0;31m\]\u\[\e[m\]\[\e[33m\]@\[\e[m\]\[\e[0;36m\]\h\[\e[m\]$PS1_NAMESPACE \[\e[0;33m\]\w\[\e[m\]\[\e[32m\]]\[\e[m\]\[\e[0;31m\]\\$\[\e[m\] "
+        export PS1="$PS1_CUSTOMER\e[1;34m[\[\e[m\]\[\e[0;31m\]\u\[\e[m\]\[\e[33m\]@\[\e[m\]\[\e[0;36m\]\h\[\e[m\]$PS1_NAMESPACE \[\e[0;33m\]\w\[\e[m\]\[\e[34m\]]\[\e[m\]\[\e[0;31m\]\\$\[\e[m\] "
        else
-        export PS1="${PS1_CUSTOMER}[\e[32m\][\[\e[m\]\[\e[1;32m\]\u\[\e[m\]\[\e[33m\]@\[\e[m\]\[\e[0;36m\]\h\[\e[m\]$PS1_NAMESPACE \[\e[0;33m\]\w\[\e[m\]\[\e[32m\]]\[\e[m\]\[\e[1;32m\]\\$\[\e[m\] "
+        export PS1="$PS1_CUSTOMER\e[1;34m[\[\e[m\]\[\e[1;32m\]\u\[\e[m\]\[\e[33m\]@\[\e[m\]\[\e[0;36m\]\h\[\e[m\]$PS1_NAMESPACE \[\e[0;33m\]\w\[\e[m\]\[\e[34m\]]\[\e[m\]\[\e[1;32m\]\\$\[\e[m\] "
       fi
     ;;
 esac
