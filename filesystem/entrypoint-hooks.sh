@@ -885,7 +885,7 @@ fi
 DOMAIN="$(cat /etc/resolv.conf | grep ^search | cut -d" " -f2)"
 NAMESPACE="${DOMAIN%%.*}"
 #NAMESPACE="$APP_NAMESPACE"
-DEPLOY="$APP_RELEASE"
+RELEASE="$APP_RELEASE"
 
 if [ ! -z "$CUSTOMER" ]; then PS1_CUSTOMER="($CUSTOMER)"; fi
 
