@@ -10,6 +10,7 @@ PASSWORD_TYPE="$([ ${ROOT_PASSWORD} ] && echo preset || echo random)"
 : ${APP_CHART:=""}
 : ${APP_RELEASE:=""}
 : ${APP_NAMESPACE:=""}
+: ${CUSTOMER:=""}
 
 ## hostname configuration
 : ${SERVERNAME:=$HOSTNAME}      # (**$HOSTNAME**) default web server hostname
@@ -833,7 +834,7 @@ echo "=> Executing $APP_DESCRIPTION configuration hooks 'always'..."
 
 # save docker variables for later usage
 [ -e "/VERSION" ] && APP_VER="$(cat /VERSION)"
-for var in APP_NAME APP_VER APP_DESCRIPTION APP_CHART APP_RELEASE APP_NAMESPACE; do eval echo $var='\"$(eval echo \$$var)\"' ; done >> /.dockerenv
+for var in APP_NAME APP_VER APP_DESCRIPTION APP_CHART APP_RELEASE APP_NAMESPACE CUSTOMER; do eval echo $var='\"$(eval echo \$$var)\"' ; done >> /.dockerenv
 
 # ImageMagick fix for: ERROR: attempt to perform an operation not allowed by the security policy `PDF' @ error/constitute.c/IsCoderAuthorized/408
 sed -i '/disable ghostscript format types/,+6d' /etc/ImageMagick-6/policy.xml
@@ -862,7 +863,7 @@ echo -E '## initZero customizations
 
 PATH=$PATH:~/bin
 
-NAMESPACE="$APP_NAMESPACE"
+#NAMESPACE="$APP_NAMESPACE"
 HISTSIZE=1000000
 HISTFILESIZE=2000000
 
@@ -882,23 +883,25 @@ if [ -x /usr/bin/dircolors ]; then
 fi
 
 # InitZero deploy namespace management
-domain="$(cat /etc/resolv.conf | grep ^search | cut -d" " -f2)"
-namespace="${domain%%.*}"
+DOMAIN="$(cat /etc/resolv.conf | grep ^search | cut -d" " -f2)"
+NAMESPACE="${DOMAIN%%.*}"
 
-case $namespace in
-  prod) nm="\[\e[1;31m\].$namespace\[\e[m\]" ;;
-  test) nm="\[\e[1;32m\].$namespace\[\e[m\]" ;;
-  *)    nm="\[\e[1;36m\].$namespace\[\e[m\]" ;;
+case $NAMESPACE in
+  prod) PS1_NAMESPACE="\[\e[1;31m\].$NAMESPACE\[\e[m\]" ;;
+  test) PS1_NAMESPACE="\[\e[1;32m\].$NAMESPACE\[\e[m\]" ;;
+  *)    PS1_NAMESPACE="\[\e[1;36m\].$NAMESPACE\[\e[m\]" ;;
 esac
+
+if [ ! -z "$CUSTOMER" ]; then PS1_CUSTOMER="(${CUSTOMER})\e[1;34m\"; fi
 
 # colors management: more info from https://wiki.archlinux.org/index.php/Bash/Prompt_customization_(Italiano)
 case "$TERM" in
     xterm-color|*-256color)
       color_prompt=yes
       if [ $(id -u) -eq 0 ];then
-        export PS1="\[\e[32m\][\[\e[m\]\[\e[0;31m\]\u\[\e[m\]\[\e[33m\]@\[\e[m\]\[\e[0;36m\]\h\[\e[m\]$nm \[\e[0;33m\]\w\[\e[m\]\[\e[32m\]]\[\e[m\]\[\e[0;31m\]\\$\[\e[m\] "
+        export PS1="${PS1_CUSTOMER}[\e[32m\][\[\e[m\]\[\e[0;31m\]\u\[\e[m\]\[\e[33m\]@\[\e[m\]\[\e[0;36m\]\h\[\e[m\]$PS1_NAMESPACE \[\e[0;33m\]\w\[\e[m\]\[\e[32m\]]\[\e[m\]\[\e[0;31m\]\\$\[\e[m\] "
        else
-        export PS1="\[\e[32m\][\[\e[m\]\[\e[1;32m\]\u\[\e[m\]\[\e[33m\]@\[\e[m\]\[\e[0;36m\]\h\[\e[m\]$nm \[\e[0;33m\]\w\[\e[m\]\[\e[32m\]]\[\e[m\]\[\e[1;32m\]\\$\[\e[m\] "
+        export PS1="${PS1_CUSTOMER}[\e[32m\][\[\e[m\]\[\e[1;32m\]\u\[\e[m\]\[\e[33m\]@\[\e[m\]\[\e[0;36m\]\h\[\e[m\]$PS1_NAMESPACE \[\e[0;33m\]\w\[\e[m\]\[\e[32m\]]\[\e[m\]\[\e[1;32m\]\\$\[\e[m\] "
       fi
     ;;
 esac
