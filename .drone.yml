@@ -2,7 +2,7 @@ kind: pipeline
 name: server-manager
 
 environment:
-  APP_VER: 1.0.27
+  APP_VER: 1.0.28
 
 trigger:
   event:
@@ -15,6 +15,9 @@ platform:
   arch: amd64
 
 volumes:
+  - name: docker_sock
+    host:
+      path: /var/run/docker.sock
   - name: docker
     host:
       path: /var/cache/drone/${DRONE_REPO}/${DRONE_STAGE_NAME}
@@ -48,5 +51,7 @@ steps:
     password:
       from_secret: DOCKER_PASSWORD
   volumes:
+  - name: docker_sock
+    path: /var/run/docker.sock
   - name: docker
     path: /var/lib/docker
