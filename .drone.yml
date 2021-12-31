@@ -2,7 +2,7 @@ kind: pipeline
 name: server-manager
 
 environment:
-  APP_VER: 1.0.28
+  APP_VER: 1.11.1
 
 trigger:
   event:
