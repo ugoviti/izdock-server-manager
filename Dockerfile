@@ -1,6 +1,7 @@
 # docker build --pull --rm --build-arg APP_DEBUG=1 --build-arg APP_VER_BUILD=1 --build-arg APP_BUILD_COMMIT=fffffff --build-arg APP_BUILD_DATE=$(date +%s) -t server-manager .
 # docker run -it --rm --name server-manager server-manager
 # docker exec -it server-manager bash
+# test build
 
 FROM golang:1.17.5-bullseye AS gcsfuse
 ENV GOPATH /go
