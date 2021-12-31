@@ -1,10 +1,12 @@
-# docker build --pull --rm --build-arg APP_DEBUG=1 --build-arg APP_VER_BUILD=1 --build-arg APP_BUILD_COMMIT=fffffff --build-arg APP_BUILD_DATE=$(date +%s) .
+# docker build --pull --rm --build-arg APP_DEBUG=1 --build-arg APP_VER_BUILD=1 --build-arg APP_BUILD_COMMIT=fffffff --build-arg APP_BUILD_DATE=$(date +%s) -t server-manager .
+# docker run -it --rm --name server-manager server-manager
+# docker exec -it server-manager bash
 
-FROM golang:1.16.5-buster AS gcsfuse
+FROM golang:1.17.5-bullseye AS gcsfuse
 ENV GOPATH /go
 RUN set -xe && go get -u github.com/googlecloudplatform/gcsfuse
 
-FROM debian:buster-slim
+FROM debian:bullseye-slim
 
 MAINTAINER Ugo Viti <ugo.viti@initzero.it>
 
@@ -117,7 +119,7 @@ RUN set -xe && \
   dpkg -i zabbix-release_${ZABBIX_VERSION}-1+debian10_all.deb && rm -f zabbix-release_${ZABBIX_VERSION}-1+debian10_all.deb && \
   \
   # add repo sysbench
-  curl -fSL --connect-timeout 30 https://packagecloud.io/install/repositories/akopytov/sysbench/script.deb.sh | bash && \
+  #curl -fSL --connect-timeout 30 https://packagecloud.io/install/repositories/akopytov/sysbench/script.deb.sh | bash && \
   \
   # update apt cache
   apt update && \
@@ -129,7 +131,7 @@ RUN set -xe && \
   # install zabbix agent
   apt -y install zabbix-agent2 zabbix-sender && \
   # install sysbench
-  apt -y install sysbench && \
+  #apt -y install sysbench && \
   \
   # phpmyadmin config
   mkdir -p /var/www/html/admin/pma && \
