@@ -14,15 +14,29 @@ platform:
   os: linux
   arch: amd64
 
+concurrency:
+  limit: 1
+
 volumes:
-  - name: docker_sock
-    host:
-      path: /var/run/docker.sock
-  - name: docker
+  - name: cache
     host:
       path: /var/cache/drone/${DRONE_REPO}/${DRONE_STAGE_NAME}
 
+workspace:
+  base: /drone
+  path: src
+
 steps:
+- name: restore-cache
+  image: drillster/drone-volume-cache
+  volumes:
+  - name: cache
+    path: /cache
+  settings:
+    restore: true
+    mount:
+    - /drone/docker
+
 - name: setup
   image: alpine
   commands:
@@ -33,7 +47,7 @@ steps:
     - echo -e -n ",$${APP_VER%%.*}" >> .tags
     - echo -e -n ",latest" >> .tags
 
-- name: build&publish
+- name: build-and-publish
   image: plugins/docker
   environment:
     APP_VER_BUILD: "${DRONE_BUILD_NUMBER}"
@@ -56,6 +70,16 @@ steps:
   - name: docker
     path: /var/lib/docker
 
+- name: rebuild-cache
+  image: drillster/drone-volume-cache
+  volumes:
+  - name: cache
+    path: /cache
+  settings:
+    rebuild: true
+    mount:
+    - /drone/docker
+    
 - name: notify
   image: plugins/matrix
   settings:
