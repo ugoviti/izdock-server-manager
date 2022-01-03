@@ -85,7 +85,19 @@ RUN set -xe && \
     apache2 \
     openssh-client \
     openssh-server \
-    proftpd \
+    proftpd-basic \
+    proftpd-core \
+    proftpd-mod-crypto \
+    proftpd-mod-geoip \
+    proftpd-mod-autohost \
+    proftpd-mod-case \
+    proftpd-mod-counter \
+    proftpd-mod-fsync \
+    proftpd-mod-msg \
+    proftpd-mod-geoip2 \
+    proftpd-mod-msg \
+    proftpd-mod-statsd \
+    proftpd-mod-tar \
     proftpd-mod-vroot \
     openvpn \
     nagios-nrpe-server \

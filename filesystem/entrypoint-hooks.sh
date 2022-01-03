@@ -404,8 +404,8 @@ cfgService_ftp() {
   LoadModule mod_rewrite.c
   LoadModule mod_load.c
   LoadModule mod_ban.c
-  LoadModule mod_wrap2.c
-  LoadModule mod_wrap2_file.c
+  #LoadModule mod_wrap2.c
+  #LoadModule mod_wrap2_file.c
   LoadModule mod_dynmasq.c
   LoadModule mod_exec.c
   LoadModule mod_shaper.c
@@ -420,6 +420,7 @@ cfgService_ftp() {
   LoadModule mod_ifversion.c
   LoadModule mod_tls_memcache.c
   LoadModule mod_ifsession.c
+  LoadModule mod_ident.c
   LoadModule mod_vroot.c
   </IfModule>
 

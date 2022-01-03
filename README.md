@@ -2,7 +2,7 @@
 Production ready multi services Cloud Native Server Manager
 
 # Supported tags
--	`1.0.X-BUILD`, `1.0.X`, `1.0`, `1`, `latest`
+-	`1.11.X-BUILD`, `1.11.X`, `1.11`, `1`, `latest`
 
 Where **X** is the patch version number, and **BUILD** is the build number (look into project [Tags](/repository/docker/izdock/server-manager/tags/) page to discover the latest versions)
 
