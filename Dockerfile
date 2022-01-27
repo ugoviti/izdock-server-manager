@@ -27,7 +27,7 @@ ENV DEBIAN_FRONTEND   noninteractive
 
 # addons packages versions
 # https://www.phpmyadmin.net/downloads/
-ENV PMA_VERSION       5.1.1
+ENV PMA_VERSION       5.1.2
 
 ENV ZABBIX_VERSION    5.4
 #ENV ZABBIX_BUILD      2
@@ -217,9 +217,6 @@ ENV CSV_REMOVE        "true"
 # certbot support
 ENV CSV_CERTBOT       "/.certbot.csv"
 
-# add files to container
-ADD Dockerfile filesystem /
-
 # prepare the env
 RUN set -xe \
   && install -m 0770 -o ${ZABBIX_USR} -g ${ZABBIX_GRP} -d /var/run/zabbix/ -d /var/log/zabbix/ \
@@ -235,8 +232,10 @@ VOLUME [ "/var/spool/cron/crontabs", "/var/spool/postfix", "/etc/postfix" ]
 # exposed ports
 EXPOSE ${SSH_PORT}/tcp ${FTP_PORT}/tcp ${FTP_FTPS_PORT}/tcp ${FTP_SFTP_PORT}/tcp ${FTP_PASV_MIN}-${FTP_PASV_MAX}/tcp ${HTTPD_PORT}/tcp
 
+ADD https://raw.githubusercontent.com/ugoviti/izsyncmysql/master/izsyncmysql /usr/local/bin/izsyncmysql
+
 # add files to container
-ADD Dockerfile filesystem README.md /
+ADD Dockerfile rootfs README.md /
 
 # container pre-entrypoint variables
 ENV APP_RUNAS          "false"
