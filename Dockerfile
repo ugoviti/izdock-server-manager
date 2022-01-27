@@ -146,6 +146,9 @@ RUN set -xe && \
   # install sysbench
   #apt -y install sysbench && \
   \
+  # install izsyncmysql
+  curl -fSL --connect-timeout 30 https://raw.githubusercontent.com/ugoviti/izsyncmysql/master/izsyncmysql -o /usr/local/bin/izsyncmysql && \
+  chmod 755 /usr/local/bin/izsyncmysql && \
   # phpmyadmin config
   mkdir -p /var/www/html/admin/pma && \
   curl -fSL --connect-timeout 30 https://files.phpmyadmin.net/phpMyAdmin/${PMA_VERSION}/phpMyAdmin-${PMA_VERSION}-all-languages.tar.gz | tar -xz -C /var/www/html/admin/pma --strip-components=1 && \
@@ -231,8 +234,6 @@ VOLUME [ "/var/spool/cron/crontabs", "/var/spool/postfix", "/etc/postfix" ]
 
 # exposed ports
 EXPOSE ${SSH_PORT}/tcp ${FTP_PORT}/tcp ${FTP_FTPS_PORT}/tcp ${FTP_SFTP_PORT}/tcp ${FTP_PASV_MIN}-${FTP_PASV_MAX}/tcp ${HTTPD_PORT}/tcp
-
-ADD https://raw.githubusercontent.com/ugoviti/izsyncmysql/master/izsyncmysql /usr/local/bin/izsyncmysql
 
 # add files to container
 ADD Dockerfile rootfs README.md /
