@@ -122,10 +122,10 @@ RUN set -xe && \
   #add-apt-repository "deb [arch=amd64] http://mirror.biznetgio.com/mariadb/repo/10.2/debian stretch main" && \
   \
   # add repo mysql 8
-  curl -fSL --connect-timeout 30 https://repo.mysql.com/mysql-apt-config_0.8.17-1_all.deb -o /tmp/mysql-apt-config_0.8.17-1_all.deb && \
+  curl -fSL --connect-timeout 30 https://repo.mysql.com/mysql-apt-config_0.8.22-1_all.deb -o /tmp/mysql-apt-config_0.8.22-1_all.deb && \
   echo mysql-apt-config mysql-apt-config/select-server select mysql-8.0 | debconf-set-selections && \
-  dpkg -i /tmp/mysql-apt-config_0.8.17-1_all.deb && \
-  rm -f /tmp/mysql-apt-config_0.8.17-1_all.deb && \
+  dpkg -i /tmp/mysql-apt-config_0.8.22-1_all.deb && \
+  rm -f /tmp/mysql-apt-config_0.8.22-1_all.deb && \
   \
   # add repo zabbix agent
   curl -fSL --connect-timeout 30 http://repo.zabbix.com/zabbix/${ZABBIX_VERSION}/debian/pool/main/z/zabbix-release/zabbix-release_${ZABBIX_VERSION}-1+debian10_all.deb -o zabbix-release_${ZABBIX_VERSION}-1+debian10_all.deb && \
