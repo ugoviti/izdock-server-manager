@@ -2,13 +2,14 @@ kind: pipeline
 name: server-manager
 
 environment:
-  APP_VER: 1.11.4
+  APP_VER: "${DRONE_TAG}"
+  APP_VER_BUILD: "${DRONE_BUILD_NUMBER}"
+  APP_BUILD_COMMIT: "${DRONE_COMMIT_SHA:0:7}"
+  APP_BUILD_DATE: "${DRONE_BUILD_FINISHED}"
 
 trigger:
   event:
-  - push
-  branch:
-  - master
+  - tag
 
 platform:
   os: linux
@@ -37,22 +38,13 @@ steps:
     mount:
     - /drone/docker
 
-- name: setup
-  image: alpine
+- name: print-env
+  image: alpine/git
   commands:
-    - echo -e -n "$${APP_VER}-${DRONE_COMMIT_SHA:0:7}" > .tags
-    - echo -e -n ",$${APP_VER}-${DRONE_BUILD_NUMBER}" >> .tags
-    - echo -e -n ",$${APP_VER}" >> .tags
-    - echo -e -n ",$${APP_VER%.*}" >> .tags
-    - echo -e -n ",$${APP_VER%%.*}" >> .tags
-    - echo -e -n ",latest" >> .tags
-
+  - set
+    
 - name: build-docker
   image: plugins/docker
-  environment:
-    APP_VER_BUILD: "${DRONE_BUILD_NUMBER}"
-    APP_BUILD_COMMIT: "${DRONE_COMMIT_SHA:0:7}"
-    APP_BUILD_DATE: "${DRONE_BUILD_FINISHED}"
   settings:
     repo: izdock/server-manager
     storage_path: /drone/docker
@@ -65,7 +57,14 @@ steps:
       from_secret: DOCKER_USERNAME
     password:
       from_secret: DOCKER_PASSWORD
-
+    tags:
+      - latest
+      - ${DRONE_TAG}
+      - ${DRONE_TAG%.*}
+      - ${DRONE_TAG%%.*}
+      - ${DRONE_TAG}-${DRONE_BUILD_NUMBER}
+      #- ${DRONE_COMMIT_SHA:0:7}
+      
 - name: rebuild-cache
   image: drillster/drone-volume-cache
   volumes:
