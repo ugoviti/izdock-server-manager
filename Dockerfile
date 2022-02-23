@@ -27,7 +27,7 @@ ENV DEBIAN_FRONTEND   noninteractive
 
 # addons packages versions
 # https://www.phpmyadmin.net/downloads/
-ENV PMA_VERSION       5.1.2
+ENV PMA_VERSION       5.1.3
 
 ENV ZABBIX_VERSION    5.4
 #ENV ZABBIX_BUILD      2
@@ -114,6 +114,7 @@ RUN set -xe && \
     dbus \
     composer \
     mc \
+    lftp \
     php php-common php-cli php-json php-mysql php-zip php-gd php-mbstring php-curl php-xml php-bcmath php-json php-bz2 php-mbstring libapache2-mod-php \
     && \
   \
