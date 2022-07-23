@@ -4,9 +4,9 @@
 # test build
 
 # https://hub.docker.com/_/golang
-FROM golang:1.18.4-bullseye AS gcsfuse
-ENV GOPATH /go
-RUN set -xe && go get -u github.com/googlecloudplatform/gcsfuse
+#FROM golang:1.18.4-bullseye AS gcsfuse
+#ENV GOPATH /go
+#RUN set -xe && go get -u github.com/googlecloudplatform/gcsfuse
 
 # https://hub.docker.com/_/debian
 FROM debian:bullseye-slim
@@ -38,6 +38,9 @@ ADD files /tmp
 
 # install packages
 RUN set -xe && \
+  export GCSFUSE_REPO=gcsfuse-`lsb_release -c -s` && \
+  echo "deb http://packages.cloud.google.com/apt $GCSFUSE_REPO main" | sudo tee /etc/apt/sources.list.d/gcsfuse.list  && \
+  curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -  && \
   # install curl and update ca certificates
   apt update && apt install -y --no-install-recommends curl ca-certificates apt-utils gnupg software-properties-common dirmngr && \
   update-ca-certificates && \
@@ -45,6 +48,7 @@ RUN set -xe && \
   apt update && apt upgrade -y && \
   # instal all needed packages
   apt install -y --no-install-recommends \
+    gcsfuse \
     tini \
     bash \
     coreutils \
@@ -174,7 +178,7 @@ RUN set -xe && \
   rm -rf /var/lib/apt/lists/* /tmp/*
 
 # install gcsfuse
-COPY --from=gcsfuse /go/bin/gcsfuse /usr/local/bin/
+#COPY --from=gcsfuse /go/bin/gcsfuse /usr/local/bin/
 
 # main variables
 ENV ROOT_PASSWORD     ""
