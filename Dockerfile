@@ -3,10 +3,12 @@
 # docker exec -it server-manager bash
 # test build
 
-FROM golang:1.17.5-bullseye AS gcsfuse
+# https://hub.docker.com/_/golang
+FROM golang:1.18.4-bullseye AS gcsfuse
 ENV GOPATH /go
 RUN set -xe && go get -u github.com/googlecloudplatform/gcsfuse
 
+# https://hub.docker.com/_/debian
 FROM debian:bullseye-slim
 
 MAINTAINER Ugo Viti <ugo.viti@initzero.it>
@@ -27,9 +29,9 @@ ENV DEBIAN_FRONTEND   noninteractive
 
 # addons packages versions
 # https://www.phpmyadmin.net/downloads/
-ENV PMA_VERSION       5.1.3
+ENV PMA_VERSION       5.2.0
 
-ENV ZABBIX_VERSION    5.4
+ENV ZABBIX_VERSION    6.2
 #ENV ZABBIX_BUILD      2
 
 ADD files /tmp
