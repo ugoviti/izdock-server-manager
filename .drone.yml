@@ -46,6 +46,26 @@ steps:
 - name: build-docker
   image: plugins/docker
   settings:
+    storage_path: /drone/docker
+    build_args_from_env:
+    - APP_VER
+    - APP_VER_BUILD
+    - APP_BUILD_COMMIT
+    - APP_BUILD_DATE
+      
+- name: rebuild-cache
+  image: drillster/drone-volume-cache
+  volumes:
+  - name: cache
+    path: /cache
+  settings:
+    rebuild: true
+    mount:
+    - /drone/docker
+    
+- name: publish-docker
+  image: plugins/docker
+  settings:
     repo: izdock/server-manager
     storage_path: /drone/docker
     build_args_from_env:
@@ -64,16 +84,6 @@ steps:
       - ${DRONE_TAG%%.*}
       - ${DRONE_TAG}-${DRONE_BUILD_NUMBER}
       #- ${DRONE_COMMIT_SHA:0:7}
-      
-- name: rebuild-cache
-  image: drillster/drone-volume-cache
-  volumes:
-  - name: cache
-    path: /cache
-  settings:
-    rebuild: true
-    mount:
-    - /drone/docker
     
 - name: notify
   image: plugins/matrix

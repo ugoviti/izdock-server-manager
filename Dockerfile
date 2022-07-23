@@ -149,9 +149,9 @@ RUN set -xe && \
   # install sysbench
   #apt -y install sysbench && \
   \
-  # install izsyncmysql
-  curl -fSL --connect-timeout 30 https://raw.githubusercontent.com/ugoviti/izsyncmysql/master/izsyncmysql -o /usr/local/bin/izsyncmysql && \
-  chmod 755 /usr/local/bin/izsyncmysql && \
+  # install izmysqlsync
+  curl -fSL --connect-timeout 30 https://raw.githubusercontent.com/ugoviti/izmysqlsync/master/izmysqlsync -o /usr/local/bin/izmysqlsync && \
+  chmod 755 /usr/local/bin/izmysqlsync && \
   # phpmyadmin config
   mkdir -p /var/www/html/admin/pma && \
   curl -fSL --connect-timeout 30 https://files.phpmyadmin.net/phpMyAdmin/${PMA_VERSION}/phpMyAdmin-${PMA_VERSION}-all-languages.tar.gz | tar -xz -C /var/www/html/admin/pma --strip-components=1 && \
