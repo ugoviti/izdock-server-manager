@@ -158,6 +158,9 @@ RUN set -xe && \
   # install izmysqlsync
   curl -fSL --connect-timeout 30 https://raw.githubusercontent.com/ugoviti/izmysqlsync/master/izmysqlsync -o /usr/local/bin/izmysqlsync && \
   chmod 755 /usr/local/bin/izmysqlsync && \
+  # install izmysqlrestore
+  curl -fSL --connect-timeout 30 https://raw.githubusercontent.com/ugoviti/izmysqlrestore/master/izmysqlrestore -o /usr/local/bin/izmysqlrestore && \
+  chmod 755 /usr/local/bin/izmysqlrestore && \
   # phpmyadmin config
   mkdir -p /var/www/html/admin/pma && \
   curl -fSL --connect-timeout 30 https://files.phpmyadmin.net/phpMyAdmin/${PMA_VERSION}/phpMyAdmin-${PMA_VERSION}-all-languages.tar.gz | tar -xz -C /var/www/html/admin/pma --strip-components=1 && \
