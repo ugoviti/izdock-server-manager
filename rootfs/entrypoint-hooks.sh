@@ -41,6 +41,7 @@ PASSWORD_TYPE="$([ ${ROOT_PASSWORD} ] && echo preset || echo random)"
 : ${CERTBOT_ENABLED:="false"}
 : ${MTA_ENABLED:="true"}
 : ${POSTFIX_ENABLED:="false"}
+: ${CRONICLE_ENABLED:="false"}
 
 ## zabbix configuration
 : ${ZABBIX_USR:="zabbix"}
@@ -284,7 +285,6 @@ cfgService_ssh() {
      ssh-keygen -A 1>/dev/null
   fi
 }
-
 
 ## ftp service
 cfgService_ftp() {
@@ -932,6 +932,7 @@ chkService ZABBIX_ENABLED
 chkService OPENVPN_ENABLED
 chkService HTTPD_ENABLED
 chkService POSTFIX_ENABLED
+chkService CRONICLE_ENABLED
 [ "${MTA_ENABLED}" = "true" ] && cfgService_mta
 [ "${PMA_ENABLED}" = "true" ] && cfgService_pma
 [ "${CERTBOT_ENABLED}" = "true" ] && cfgService_certbot

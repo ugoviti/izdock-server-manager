@@ -56,6 +56,17 @@ Run server-manager creating users and grups from external file:
 docker run -it --rm -p 21:21 -p 22:22 -p 80:80 -p 222:222 -e CSV_REMOVE=false -v /local/path/.users.csv:/.users.csv -v /local/path/.groups.csv:/.groups.csv izdock/postfix
 ```
 
+# How to build this image
+
+```
+docker build --pull --rm -t server-manager .
+```
+
+## Run the local build with
+```
+docker run -it --rm -e CSV_IMPORT=false -e CRONICLE_ENABLED=true -p 2222:2222 -p 3012:3012 --name server-manager server-manager
+```
+
 ## Users csv file format:
 
 ```

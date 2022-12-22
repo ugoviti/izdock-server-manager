@@ -3,40 +3,46 @@
 # docker exec -it server-manager bash
 # test build
 
-# https://hub.docker.com/_/golang
+## https://hub.docker.com/_/golang
 #FROM golang:1.18.4-bullseye AS gcsfuse
 #ENV GOPATH /go
 #RUN set -xe && go get -u github.com/googlecloudplatform/gcsfuse
 
-# https://hub.docker.com/_/debian
+## https://hub.docker.com/_/debian
 FROM debian:bullseye-slim
 
 MAINTAINER Ugo Viti <ugo.viti@initzero.it>
 
-# Application post init exported env variables
+## Application post init exported env variables
 ENV APP_NAME          "server-manager"
 ENV APP_DESCRIPTION   "Cloud Native Server Manager"
 ENV APP_CHART         ""
 ENV APP_RELEASE       ""
 ENV APP_NAMESPACE     ""
 
-# full app version
+## full app version
 ARG APP_VER
 ENV APP_VER "${APP_VER}"
 
-# debian apt warnings workaround
+## debian apt warnings workaround
 ENV DEBIAN_FRONTEND   noninteractive
 
-# addons packages versions
-# https://www.phpmyadmin.net/downloads/
+### addons packages versions
+## https://www.phpmyadmin.net/downloads/
 ENV PMA_VERSION       5.2.0
 
+## https://www.zabbix.com/download_agents
 ENV ZABBIX_VERSION    6.2
-#ENV ZABBIX_BUILD      2
+
+## https://nodejs.org/
+ENV NODEJS_VERSION    18
+
+## https://github.com/jhuckaby/Cronicle/releases
+ENV CRONICLE_VERSION  0.9.17
 
 ADD files /tmp
 
-# install packages
+## install packages
 RUN set -xe && \
   # install curl and update ca certificates
   apt update && apt install -y --no-install-recommends curl ca-certificates apt-utils gnupg software-properties-common dirmngr && \
@@ -113,7 +119,6 @@ RUN set -xe && \
     git \
     redis-tools \
     sshpass \
-    nodejs \
     task-spooler \
     ghostscript \
     zbar-tools \
@@ -164,6 +169,18 @@ RUN set -xe && \
   # phpmyadmin config
   mkdir -p /var/www/html/admin/pma && \
   curl -fSL --connect-timeout 30 https://files.phpmyadmin.net/phpMyAdmin/${PMA_VERSION}/phpMyAdmin-${PMA_VERSION}-all-languages.tar.gz | tar -xz -C /var/www/html/admin/pma --strip-components=1 && \
+  # install nodejs and npm
+  curl -fSL --connect-timeout 30 https://deb.nodesource.com/setup_${NODEJS_VERSION}.x | bash - && \
+  apt -y install nodejs && \
+  \
+  # install cronicle
+  mkdir -p /usr/local/cronicle && \
+  cd /usr/local/cronicle && \
+  curl -fSL --connect-timeout 30 https://github.com/jhuckaby/Cronicle/archive/v${CRONICLE_VERSION}.tar.gz | tar zxvf - --strip-components 1 && \
+  npm install && \
+  node bin/build.js dist && \
+  rm -Rf /root/.npm && \
+  \
   # apache config
   mkdir -p /run/apache2 && \
   # install synbak
@@ -200,6 +217,7 @@ ENV PMA_ENABLED       "true"
 ENV CERTBOT_ENABLED   "false"
 ENV MTA_ENABLED       "true"
 ENV POSTFIX_ENABLED   "false"
+ENV CRONICLE_ENABLED  "false"
 
 ENV ZABBIX_USR        "zabbix"
 ENV ZABBIX_GRP        "zabbix"
@@ -242,7 +260,7 @@ RUN set -xe \
   && chmod 700 /root/.ssh
 
 # define volumes
-VOLUME [ "/var/spool/cron/crontabs", "/var/spool/postfix", "/etc/postfix" ]
+VOLUME [ "/var/spool/cron/crontabs", "/var/spool/postfix", "/etc/postfix", "/usr/local/cronicle/data", "/usr/local/cronicle/plugins", "/usr/local/cronicle/logs" ]
 
 # exposed ports
 EXPOSE ${SSH_PORT}/tcp ${FTP_PORT}/tcp ${FTP_FTPS_PORT}/tcp ${FTP_SFTP_PORT}/tcp ${FTP_PASV_MIN}-${FTP_PASV_MAX}/tcp ${HTTPD_PORT}/tcp
