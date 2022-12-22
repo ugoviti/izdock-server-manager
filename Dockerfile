@@ -156,7 +156,7 @@ RUN set -xe && \
   # install mysql 8
   apt -y install mysql-community-client && \
   # install zabbix agent
-  apt -y install zabbix-agent2 zabbix-sender && \
+  apt -y install zabbix-release zabbix-agent2 zabbix-sender && \
   # install sysbench
   #apt -y install sysbench && \
   \
@@ -243,6 +243,8 @@ ENV FTP_SSL_KEYS_DIR  "/etc/ssl/private"
 
 ENV HTTPD_PORT        80
 
+ENV CRONICLE_PORT     3012
+
 ENV CSV_USERS         "/.users.csv"
 ENV CSV_GROUPS        "/.groups.csv"
 ENV CSV_REMOVE        "true"
@@ -263,7 +265,7 @@ RUN set -xe \
 VOLUME [ "/var/spool/cron/crontabs", "/var/spool/postfix", "/etc/postfix", "/usr/local/cronicle/data", "/usr/local/cronicle/plugins", "/usr/local/cronicle/logs" ]
 
 # exposed ports
-EXPOSE ${SSH_PORT}/tcp ${FTP_PORT}/tcp ${FTP_FTPS_PORT}/tcp ${FTP_SFTP_PORT}/tcp ${FTP_PASV_MIN}-${FTP_PASV_MAX}/tcp ${HTTPD_PORT}/tcp
+EXPOSE ${SSH_PORT}/tcp ${FTP_PORT}/tcp ${FTP_FTPS_PORT}/tcp ${FTP_SFTP_PORT}/tcp ${FTP_PASV_MIN}-${FTP_PASV_MAX}/tcp ${HTTPD_PORT}/tcp ${CRONICLE_PORT}/tcp
 
 # add files to container
 ADD Dockerfile rootfs README.md /
