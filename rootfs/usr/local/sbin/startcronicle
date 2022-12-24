@@ -3,6 +3,7 @@
 ROOT_DIR=/usr/local/cronicle
 CONF_DIR=$ROOT_DIR/conf
 BIN_DIR=$ROOT_DIR/bin
+
 # DATA_DIR needs to be the same as the exposed Docker volume in Dockerfile
 DATA_DIR=$ROOT_DIR/data
 # LOGS_DIR needs to be the same as the exposed Docker volume in Dockerfile
@@ -17,8 +18,7 @@ export CRONICLE_echo=1
 export CRONICLE_foreground=1
 
 # Only run setup when setup needs to be done
-if [ ! -f $DATA_DIR/.setup_done ]
-then
+if [ ! -f $DATA_DIR/.setup_done ]; then
   $BIN_DIR/control.sh setup
 
   cp $CONF_DIR/config.json $CONF_DIR/config.json.origin
@@ -34,9 +34,12 @@ then
 
   # Marking setup done
   touch $DATA_DIR/.setup_done
+  else
+    # make sure the default global server 0 is configured with the right hostname and IP: ref. https://github.com/jhuckaby/Cronicle/issues/36
+    $BIN_DIR/storage-cli.js get global/servers/0 | jq --arg hostname "$(hostname -s)" --arg ip "$(hostname -i)" '.items[0].hostname=$hostname | .items[0].ip=$ip' | $BIN_DIR/storage-cli.js put global/servers/0
 fi
 
-# Run cronicle with unprivileged user
+# run cronicle with unprivileged user
 # chown -R cronicle:cronicle data/ logs/
 
 # remove old lock file. resolves #9
