@@ -13,10 +13,17 @@ PLUGINS_DIR=$ROOT_DIR/plugins
 
 command=$BIN_DIR/control.sh
 
+# remove old lock file. resolves #9
+pidfile=$LOGS_DIR/cronicled.pid
+
+if [ -f "$pidfile" ]; then
+    echo "Removing old PID file: $pidfile"
+    rm -f "$pidfile"
+fi
+
 # Proxy signals
 function kill_app(){
     #kill $(cat $pidfile)
-    echo "STOPPING CRONICLE"
     $command stop
     exit $?
 }
@@ -51,14 +58,6 @@ fi
 
 # run cronicle with unprivileged user
 # chown -R cronicle:cronicle data/ logs/
-
-# remove old lock file. resolves #9
-pidfile=$LOGS_DIR/cronicled.pid
-
-if [ -f "$pidfile" ]; then
-    echo "Removing old PID file: $pidfile"
-    rm -f "$pidfile"
-fi
 
 if [ -n "$1" ]; then
   exec $command "$@"
