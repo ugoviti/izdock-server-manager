@@ -1,5 +1,12 @@
 #! /usr/bin/env bash
 
+## useful commands
+# /usr/local/cronicle/bin/storage-cli.js list_get global/server_groups
+# /usr/local/cronicle/bin/storage-cli.js list_get global/servers
+
+# /usr/local/cronicle/bin/storage-cli.js get global/server_groups/0
+# /usr/local/cronicle/bin/storage-cli.js get global/servers/0
+
 ROOT_DIR=/usr/local/cronicle
 CONF_DIR=$ROOT_DIR/conf
 BIN_DIR=$ROOT_DIR/bin
@@ -54,6 +61,7 @@ if [ ! -f $DATA_DIR/.setup_done ]; then
   else
     # make sure the default global server 0 is configured with the right hostname and IP: ref. https://github.com/jhuckaby/Cronicle/issues/36
     $BIN_DIR/storage-cli.js get global/servers/0 | jq --arg hostname "$(hostname -s)" --arg ip "$(hostname -i)" '.items[0].hostname=$hostname | .items[0].ip=$ip' | $BIN_DIR/storage-cli.js put global/servers/0
+    $BIN_DIR/storage-cli.js get global/server_groups/0 | jq --arg hostname "^($(hostname -s))$" '.items[0].regexp=$hostname' | $BIN_DIR/storage-cli.js put global/server_groups/0
 fi
 
 # run cronicle with unprivileged user
