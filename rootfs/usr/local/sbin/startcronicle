@@ -41,7 +41,7 @@ trap "kill_app" SIGINT SIGTERM SIGKILL
 export CRONICLE_Storage__Filesystem__base_dir=${DATA_DIR}
 export NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
 export CRONICLE_echo=1
-export CRONICLE_foreground=1
+export CRONICLE_foreground=0
 
 # Only run setup when setup needs to be done
 if [ ! -f $DATA_DIR/.setup_done ]; then
