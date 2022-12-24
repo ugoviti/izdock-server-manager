@@ -637,6 +637,8 @@ cfgService_httpd() {
   if   [ "$OS_RELEASE" = "debian" ]; then
     sed "s/#ServerName .*/ServerName ${SERVERNAME}/" -i "${HTTPD_CONF_DIR}/sites-enabled/000-default.conf"
     echo "ServerName ${SERVERNAME}" >> "${HTTPD_CONF_DIR}/apache2.conf"
+    # enable reverse proxy modules
+    a2enmod rewrite proxy proxy_http proxy_wstunnel
   elif [ "$OS_RELEASE" = "alpine" ]; then
     sed "s/^#ServerName.*/ServerName ${SERVERNAME}/" -i "${HTTPD_CONF_DIR}/httpd.conf"
   fi
