@@ -27,6 +27,7 @@ command=$BIN_DIR/control.sh
 : ${NODE_EXTRA_CA_CERTS:="/etc/ssl/certs/ca-certificates.crt"}
 : ${CRONICLE_echo:=1}
 : ${CRONICLE_foreground:=0}
+: ${CRONICLE_master_ping_timeout:=30}
 : ${CRONICLE_email_from:="cronicle@localhost"}
 : ${CRONICLE_smtp_hostname:="localhost"}
 : ${CRONICLE_smtp_port:=25}
