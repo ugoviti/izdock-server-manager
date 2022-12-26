@@ -2,7 +2,7 @@
 Production ready multi services Cloud Native Server Manager
 
 # Supported tags
--	`1.11.X-BUILD`, `1.11.X`, `1.11`, `1`, `latest`
+-	`1.12.X-BUILD`, `1.12.X`, `1.12`, `1`, `latest`
 
 Where **X** is the patch version number, and **BUILD** is the build number (look into project [Tags](/repository/docker/izdock/server-manager/tags/) page to discover the latest versions)
 
@@ -15,23 +15,24 @@ Where **X** is the patch version number, and **BUILD** is the build number (look
 - Using [tini](https://github.com/krallin/tini) as init process
 - Using supervisord for service management
 - Supported services:
-  - Rsyslog
-  - Crond
-  - OpenSSH
-  - ProFTPd
-  - Apache
+  - Rsyslog (syslog server)
+  - Crond (unix cron scheduler)
+  - OpenSSH (ssh server)
+  - ProFTPd (ftp server)
+  - Apache (web server)
   - PHP 7.3
-  - phpMyAdmin
-  - OpenVPN Server
-  - nrpe agent
+  - phpMyAdmin (mysql web gui)
+  - OpenVPN Server (VPN Server)
+  - nrpe agent (Nagios agent)
   - zabbix agent
+  - cronicle (multi-server task scheduler and runner with web gui for management)
 - Automatic Users and Groups creation via external csv file
 
 # What is Server Manager?
-Server Manager is useful when you need a containerized full stack server within classic services running inside it.
-For example an SSH server, FTP server, OpenVPN Client/Server, run cron jobs, etc...
+Server Manager is useful when you need a containerized full stack server with legacy services running inside it.
+Like an SSH server, FTP server, OpenVPN Client/Server, run cron jobs, etc...
 For example you can use server-manager when you need a way to upload files via FTP inside your docker infrastructure shared by NFS server
-You can automatically create users and group using ad formatted csv file
+You can automatically create users and group using ad formatted csv file imported during container startup
 
 # How to use this image
 

@@ -1,11 +1,17 @@
 #! /usr/bin/env bash
 
-## useful commands
+### useful commands
+
+## show configured servers and groups
 # /usr/local/cronicle/bin/storage-cli.js list_get global/server_groups
 # /usr/local/cronicle/bin/storage-cli.js list_get global/servers
 
+## show configured server 0 and group 0
 # /usr/local/cronicle/bin/storage-cli.js get global/server_groups/0
 # /usr/local/cronicle/bin/storage-cli.js get global/servers/0
+
+## recovery password
+# /usr/local/cronicle/bin/control.sh admin USERNAME PASSWORD
 
 ROOT_DIR=/usr/local/cronicle
 CONF_DIR=$ROOT_DIR/conf
