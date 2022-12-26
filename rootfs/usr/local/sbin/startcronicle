@@ -44,13 +44,13 @@ pidfile=$LOGS_DIR/cronicled.pid
 check_pid() {
 if [ -f "$pidfile" ]; then
   PID=$(cat "$pidfile")
-  if ps -p $PID > /dev/null
-  then
+  if ps -p $PID > /dev/null; then
    echo "Cronicle is already running with PID: $PID"
    exit 0
-  else
-    echo "Removing old Cronicle PID file: $pidfile"
-    rm -f "$pidfile"
+  # not needed to remove pid files if exist. managed by cronicles script itself
+  #else
+  #  echo "Removing old Cronicle PID file: $pidfile"
+  #  rm -f "$pidfile"
   fi
 fi
 }
@@ -100,8 +100,8 @@ fi
 
 sleep 2
 
-# Loop while the pidfile and the process exist
-while [ -f $pidfile ] && kill -0 $(cat $pidfile) ; do
-    sleep 5
+# loop while the pidfile exist and the process exist
+while [ -f $pidfile ] && kill -0 $(cat "$pidfile"); do
+  sleep 5
 done
-exit 1000 # exit unexpected
+exit 255 # exit unexpected
