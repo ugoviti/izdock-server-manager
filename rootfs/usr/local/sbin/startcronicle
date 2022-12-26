@@ -41,10 +41,19 @@ command=$BIN_DIR/control.sh
 # remove old lock file. resolves #9
 pidfile=$LOGS_DIR/cronicled.pid
 
+check_pid() {
 if [ -f "$pidfile" ]; then
-    echo "Removing old PID file: $pidfile"
+  PID=$(cat "$pidfile")
+  if ps -p $PID > /dev/null
+  then
+   echo "Cronicle is already running with PID: $PID"
+   exit 0
+  else
+    echo "Removing old Cronicle PID file: $pidfile"
     rm -f "$pidfile"
+  fi
 fi
+}
 
 # Proxy signals
 function kill_app(){
@@ -54,6 +63,7 @@ function kill_app(){
 }
 trap "kill_app" SIGINT SIGTERM SIGKILL
 
+make_config() {
 # Only run setup when setup needs to be done
 if [ ! -f $DATA_DIR/.setup_done ]; then
   $BIN_DIR/control.sh setup
@@ -74,9 +84,13 @@ if [ ! -f $DATA_DIR/.setup_done ]; then
     $BIN_DIR/storage-cli.js get global/servers/0 | jq --arg hostname "$(hostname -s)" --arg ip "$(hostname -i)" '.items[0].hostname=$hostname | .items[0].ip=$ip' | $BIN_DIR/storage-cli.js put global/servers/0
     $BIN_DIR/storage-cli.js get global/server_groups/0 | jq --arg hostname "^($(hostname -s))$" '.items[0].regexp=$hostname' | $BIN_DIR/storage-cli.js put global/server_groups/0
 fi
+}
 
 # run cronicle with unprivileged user
 # chown -R cronicle:cronicle data/ logs/
+
+check_pid
+make_config
 
 if [ -n "$1" ]; then
   exec $command "$@"
