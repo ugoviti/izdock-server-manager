@@ -38,7 +38,7 @@ ENV ZABBIX_VERSION    6.2
 ENV NODEJS_VERSION    18
 
 ## https://github.com/jhuckaby/Cronicle/releases
-ENV CRONICLE_VERSION  0.9.17
+ENV CRONICLE_VERSION  0.9.19
 
 ADD files /tmp
 
