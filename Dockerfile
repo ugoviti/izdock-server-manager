@@ -29,7 +29,7 @@ ENV DEBIAN_FRONTEND   noninteractive
 
 ### addons packages versions
 ## https://www.phpmyadmin.net/downloads/
-ENV PMA_VERSION       5.2.0
+ENV PMA_VERSION       5.2.1
 
 ## https://www.zabbix.com/download_agents
 ENV ZABBIX_VERSION    6.2
@@ -38,7 +38,7 @@ ENV ZABBIX_VERSION    6.2
 ENV NODEJS_VERSION    18
 
 ## https://github.com/jhuckaby/Cronicle/releases
-ENV CRONICLE_VERSION  0.9.19
+ENV CRONICLE_VERSION  0.9.20
 
 ADD files /tmp
 
