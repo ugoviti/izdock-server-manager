@@ -172,7 +172,8 @@ RUN set -xe && \
   # install nodejs and npm
   curl -fSL --connect-timeout 30 https://deb.nodesource.com/setup_${NODEJS_VERSION}.x | bash - && \
   apt -y install nodejs && \
-  \
+  # install mysqltuner
+  curl -fSL --connect-timeout 30 http://mysqltuner.pl/ -o /usr/local/bin/mysqltuner.pl && chmod 755 /usr/local/bin/mysqltuner.pl && \
   # install cronicle
   mkdir -p /usr/local/cronicle && \
   cd /usr/local/cronicle && \
