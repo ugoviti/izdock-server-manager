@@ -981,7 +981,7 @@ if [ "$PASSWORD_TYPE" = "random" ]; then
 fi
 }
 
-hooks_oneshot() {
+hooks_onetime() {
 echo "=> Executing $APP_DESCRIPTION configuration hooks 'oneshot'..."
 
 # save the configuration status for later usage with persistent volumes
@@ -989,4 +989,4 @@ touch "${CONF_DEFAULT}/.configured"
 }
 
 hooks_always
-#[ ! -f "${CONF_DEFAULT}/.configured" ] && hooks_oneshot || echo "=> Detected $APP_DESCRIPTION configuration files already present in ${CONF_DEFAULT}... skipping automatic configuration"
+#[ ! -f "${CONF_DEFAULT}/.configured" ] && hooks_onetime || echo "=> Detected $APP_DESCRIPTION configuration files already present in ${CONF_DEFAULT}... skipping automatic configuration"
