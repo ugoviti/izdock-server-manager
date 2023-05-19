@@ -128,6 +128,7 @@ RUN set -xe && \
     lftp \
     ftp \
     gawk \
+    elinks \
     php php-common php-cli php-json php-mysql php-zip php-gd php-mbstring php-curl php-xml php-bcmath php-json php-bz2 php-mbstring libapache2-mod-php \
     && \
   \

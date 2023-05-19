@@ -1,7 +1,7 @@
 #!/bin/bash
 # initzero docker entrypoint init script
 # written by Ugo Viti <ugo.viti@initzero.it>
-# 20200524
+# 20201220
 
 #set -x
 
@@ -18,6 +18,10 @@ appHooks() {
   
   echo "=> Starting container $APP_DESCRIPTION -> $APP_NAME:$APP_VER (build:${APP_VER_BUILD} commit:${APP_BUILD_COMMIT} date:${APP_BUILD_DATE})"
   echo "==============================================================================="
+
+  # legacy options fixes
+  [ "$APP_RELINK" = "0" ] && APP_RELINK="false"
+  [ "$APP_RELINK" = "1" ] && APP_RELINK="true"
 
   # verify if exist custom directory overrides
   if [ "$APP_RELINK" = "true" ]; then
@@ -38,23 +42,23 @@ appHooks() {
 
 # if required move configurations and webapps dirs to custom directory
 relink_dir() {
-	local dir_default="$1"
-	local dir_custom="$2"
+  local dir_default="$1"
+  local dir_custom="$2"
 
-	# make destination dir if not exist
-	[ ! -e "$dir_default" ] && mkdir -p "$dir_default"
-	[ ! -e "$(dirname "$dir_custom")" ] && mkdir -p "$(dirname "$dir_custom")"
+  # make destination dir if not exist
+  [ ! -e "$dir_default" ] && mkdir -p "$dir_default"
+  [ ! -e "$(dirname "$dir_custom")" ] && mkdir -p "$(dirname "$dir_custom")"
 
-	echo "$APP_DESCRIPTION directory container override detected! default: $dir_default custom: $dir_custom"
-	if [ ! -e "$dir_custom" ]; then
-		echo -e -n "=> moving the $dir_default directory to $dir_custom ..."
-		mv "$dir_default" "$dir_custom"
-	else
-		echo -e -n "=> directory $dir_custom already exist... "
-		mv "$dir_default" "$dir_default".dist
-	fi
-	echo "linking $dir_custom into $dir_default"
-	ln -s "$dir_custom" "$dir_default"
+  echo "$APP_DESCRIPTION directory container override detected! default: $dir_default custom: $dir_custom"
+  if [ ! -e "$dir_custom" ]; then
+    echo -e -n "=> moving the $dir_default directory to $dir_custom ..."
+    mv "$dir_default" "$dir_custom"
+  else
+    echo -e -n "=> directory $dir_custom already exist..."
+    mv "$dir_default" "$dir_default".dist
+  fi
+  echo "linking $dir_custom into $dir_default"
+  ln -s "$dir_custom" "$dir_default"
 }
 
 # exec app hooks
@@ -75,6 +79,9 @@ elif [ "$APP_RUNAS" = "true" ]; then
     # run the specified command without modifications
     CMD="$@"
 fi
+
+# at last if CMD_OVERRIDE is defined use it
+[ ! -z "$CMD_OVERRIDE" ] && CMD="${CMD_OVERRIDE}"
 
 # use tini init manager if defined in Dockerfile
 [ "$ENTRYPOINT_TINI" = "true" ] && CMD="tini -g -- $CMD"
