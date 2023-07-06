@@ -129,7 +129,7 @@ RUN set -xe && \
     ftp \
     gawk \
     elinks \
-    php php-common php-cli php-json php-mysql php-zip php-gd php-mbstring php-curl php-xml php-bcmath php-json php-bz2 php-mbstring libapache2-mod-php \
+    php php-common php-cli php-json php-mysql php-zip php-gd php-mbstring php-curl php-xml php-bcmath php-json php-bz2 php-mbstring libapache2-mod-php php-gmp \
     && \
   \
   # add repo mariadb 10.2 (because in default 10.3 exist this problem https://jira.mariadb.org/browse/MDEV-17429)
