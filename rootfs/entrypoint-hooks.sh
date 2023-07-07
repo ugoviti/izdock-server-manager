@@ -88,6 +88,9 @@ PASSWORD_TYPE="$([ ${ROOT_PASSWORD} ] && echo preset || echo random)"
 : ${password:=""}                       # password for auth smtp server
 : ${timeout:=3600}                      # connection timeout
 
+# trim username to max 32 chars to avoid limits and errors like: `useradd: invalid user name`
+username="${username:0:32}"
+
 # operating system specific variables
 if   [ "$OS_RELEASE" = "debian" ]; then
 # debian paths
