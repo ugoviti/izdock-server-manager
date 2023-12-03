@@ -43,6 +43,9 @@ ENV NODEJS_VERSION    18
 ## https://github.com/jhuckaby/Cronicle/releases
 ENV CRONICLE_VERSION  0.9.39
 
+## https://github.com/GoogleCloudPlatform/gcsfuse
+ENV GCSFUSE_VERSION=1.2.0
+
 ADD files /tmp
 
 ## install packages
@@ -51,8 +54,9 @@ RUN set -xe && \
   apt update && apt install -y --no-install-recommends curl ca-certificates apt-utils gnupg software-properties-common dirmngr && \
   update-ca-certificates && \
   # install extra repositories
-  echo "deb http://packages.cloud.google.com/apt gcsfuse-buster main" | tee /etc/apt/sources.list.d/gcsfuse.list && \
-  curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
+  export GCSFUSE_REPO=gcsfuse-`lsb_release -c -s` && \
+  echo "deb https://packages.cloud.google.com/apt $GCSFUSE_REPO main" | sudo tee /etc/apt/sources.list.d/gcsfuse.list && \
+  curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add - && \
   # upgrade the system
   apt update && apt upgrade -y && \
   # instal all needed packages
