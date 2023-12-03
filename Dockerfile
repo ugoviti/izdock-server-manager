@@ -41,7 +41,7 @@ ENV ZABBIX_VERSION    6.4
 ENV NODEJS_VERSION    18
 
 ## https://github.com/jhuckaby/Cronicle/releases
-ENV CRONICLE_VERSION  0.9.23
+ENV CRONICLE_VERSION  0.9.39
 
 ADD files /tmp
 
@@ -133,7 +133,7 @@ RUN set -xe && \
     gawk \
     elinks \
     postgresql-client \
-    php php-common php-cli php-json php-mysql php-zip php-gd php-mbstring php-curl php-xml php-bcmath php-json php-bz2 php-mbstring libapache2-mod-php php-gmp \
+    php php-common php-cli php-json php-mysql php-zip php-gd php-mbstring php-curl php-xml php-bcmath php-json php-bz2 php-mbstring libapache2-mod-php php-gmp php-pgsql \
     && \
   \
   # add repo mariadb 10.2 (because in default 10.3 exist this problem https://jira.mariadb.org/browse/MDEV-17429)
