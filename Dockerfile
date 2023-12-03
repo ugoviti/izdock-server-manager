@@ -28,6 +28,9 @@ ENV APP_VER "${APP_VER}"
 ENV DEBIAN_FRONTEND   noninteractive
 
 ### addons packages versions
+## https://www.adminer.org/#download
+ENV ADMINER_VERSION   4.8.1
+
 ## https://www.phpmyadmin.net/downloads/
 ENV PMA_VERSION       5.2.1
 
@@ -129,6 +132,7 @@ RUN set -xe && \
     ftp \
     gawk \
     elinks \
+    postgresql-client \
     php php-common php-cli php-json php-mysql php-zip php-gd php-mbstring php-curl php-xml php-bcmath php-json php-bz2 php-mbstring libapache2-mod-php php-gmp \
     && \
   \
@@ -167,9 +171,12 @@ RUN set -xe && \
   # install izmysqlrestore
   curl -fSL --connect-timeout 30 https://raw.githubusercontent.com/ugoviti/izmysqlrestore/master/izmysqlrestore -o /usr/local/bin/izmysqlrestore && \
   chmod 755 /usr/local/bin/izmysqlrestore && \
-  # phpmyadmin config
+  # phpMyAdmin config
   mkdir -p /var/www/html/admin/pma && \
   curl -fSL --connect-timeout 30 https://files.phpmyadmin.net/phpMyAdmin/${PMA_VERSION}/phpMyAdmin-${PMA_VERSION}-all-languages.tar.gz | tar -xz -C /var/www/html/admin/pma --strip-components=1 && \
+  # Adminer config
+  mkdir -p /var/www/html/admin/adminer && \
+  curl -fSL --connect-timeout 30 https://github.com/vrana/adminer/releases/download/v${ADMINER_VERSION}/adminer-${ADMINER_VERSION}.php -o /var/www/html/admin/adminer/index.php && \
   # install nodejs and npm
   curl -fSL --connect-timeout 30 https://deb.nodesource.com/setup_${NODEJS_VERSION}.x | bash - && \
   apt -y install nodejs && \
