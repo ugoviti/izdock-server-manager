@@ -53,10 +53,16 @@ RUN set -xe && \
   # install curl and update ca certificates
   apt update && apt install -y --no-install-recommends curl ca-certificates apt-utils gnupg software-properties-common dirmngr && \
   update-ca-certificates && \
-  # install extra repositories
+  ## install extra repositories
+  # postgresql
+  echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list && \
+  curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
+  \
+  # google cloud
   export GCSFUSE_REPO=gcsfuse-`lsb_release -c -s` && \
   echo "deb https://packages.cloud.google.com/apt $GCSFUSE_REPO main" | tee /etc/apt/sources.list.d/gcsfuse.list && \
   curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
+  \
   # upgrade the system
   apt update && apt upgrade -y && \
   # instal all needed packages
