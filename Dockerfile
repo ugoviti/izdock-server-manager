@@ -41,10 +41,10 @@ ENV ZABBIX_VERSION    6.4
 ENV NODEJS_VERSION    18
 
 ## https://github.com/jhuckaby/Cronicle/releases
-ENV CRONICLE_VERSION  0.9.39
+ENV CRONICLE_VERSION  0.9.53
 
 ## https://github.com/GoogleCloudPlatform/gcsfuse
-ENV GCSFUSE_VERSION=1.2.0
+ENV GCSFUSE_VERSION=2.3.1
 
 ADD files /tmp
 
