@@ -146,6 +146,8 @@ RUN set -xe && \
     php php-common php-cli php-json php-mysql php-zip php-gd php-mbstring php-curl php-xml php-bcmath php-json php-bz2 php-mbstring libapache2-mod-php php-gmp php-pgsql \
     && \
   \
+  # add keys of mysql repo:
+  apt-key adv --keyserver keyserver.ubuntu.com --recv-keys B7B3B788A8D3785C && \
   # add repo mariadb 10.2 (because in default 10.3 exist this problem https://jira.mariadb.org/browse/MDEV-17429)
   #apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 0xF1656F24C74CD1D8 && \
   #add-apt-repository "deb [arch=amd64] http://mirror.biznetgio.com/mariadb/repo/10.2/debian stretch main" && \
