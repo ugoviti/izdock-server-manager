@@ -38,13 +38,13 @@ ENV PMA_VERSION       5.2.1
 ENV ZABBIX_VERSION    6.4
 
 ## https://nodejs.org/
-ENV NODEJS_VERSION    18
+ENV NODEJS_VERSION    20
 
 ## https://github.com/jhuckaby/Cronicle/releases
-ENV CRONICLE_VERSION  0.9.53
+ENV CRONICLE_VERSION  0.9.59
 
 ## https://github.com/GoogleCloudPlatform/gcsfuse
-ENV GCSFUSE_VERSION=2.3.1
+ENV GCSFUSE_VERSION   2.4.0
 
 ADD files /tmp
 
