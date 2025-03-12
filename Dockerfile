@@ -29,22 +29,22 @@ ENV DEBIAN_FRONTEND   noninteractive
 
 ### addons packages versions
 ## https://www.adminer.org/#download
-ENV ADMINER_VERSION   4.8.1
+ENV ADMINER_VERSION   5.0.4
 
 ## https://www.phpmyadmin.net/downloads/
-ENV PMA_VERSION       5.2.1
+ENV PMA_VERSION       5.2.2
 
 ## https://www.zabbix.com/download_agents
-ENV ZABBIX_VERSION    6.4
+ENV ZABBIX_VERSION    7.0
 
 ## https://nodejs.org/
 ENV NODEJS_VERSION    20
 
 ## https://github.com/jhuckaby/Cronicle/releases
-ENV CRONICLE_VERSION  0.9.59
+ENV CRONICLE_VERSION  0.9.76
 
 ## https://github.com/GoogleCloudPlatform/gcsfuse
-ENV GCSFUSE_VERSION   2.4.0
+ENV GCSFUSE_VERSION   2.10.0
 
 ADD files /tmp
 
