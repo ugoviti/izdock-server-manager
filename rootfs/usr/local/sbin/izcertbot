@@ -8,7 +8,7 @@
 
 CSV_CERTBOT="$1"
 shift
-certbotOpts="$@"
+certbotOpts="$*"
 
 ## certbot ssl certificates management
 : ${CSV_CERTBOT:="/.certbot.csv"} # import ssl domains list using this csv
@@ -46,7 +46,7 @@ cat "$1" | while read line; do
   CERTBOT_DOMAIN_ALL="${CERTBOT_DOMAIN_MAIN}$([ ! -z "$CERTBOT_DOMAIN_ALIAS" ] && echo ";$CERTBOT_DOMAIN_ALIAS")"
   
   # default variables if empty
-  [ -z "$CERTBOT_EMAIL" ] && $CERTBOT_EMAIL="root@localhost.localdomain"
+  [ -z "$CERTBOT_EMAIL" ] && CERTBOT_EMAIL="root@localhost.localdomain"
   
   echo "==> Verifying SSL certificates for domains: '$CERTBOT_DOMAIN_ALL'"
   if [ -e "$CERTBOT_WEBROOT" ] ; then
@@ -93,7 +93,7 @@ cat "$1" | while read line; do
           # 86400 = 1 day
           THRESHOLD_RENEW=604800
           UNIXTIME_EXPIRE=$(date -d "$(openssl x509 -noout -dates -in "$CERTBOT_FULLCHAIN" | grep ^"notAfter=" | sed 's/^notAfter=//')" +%s)
-          UNIXTIME_RENEW=$(echo $(date +%s) + $THRESHOLD_RENEW | bc)
+          UNIXTIME_RENEW=$(echo "$(date +%s) + $THRESHOLD_RENEW" | bc)
           if [ "$CERTBOT_CN" != "$CERTBOT_DOMAIN_MAIN" ]; then
               echo "---> INFO: Certificate already exist with a wrong CN ($CERTBOT_CN) ricreating it for new CN ($CERTBOT_DOMAIN_MAIN)"
               backupLetsEncrypt

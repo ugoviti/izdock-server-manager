@@ -20,7 +20,7 @@ wait_for() {
 cleanup() { "$docker" rm -f "$name" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
 
-"$docker" run -d --name "$name" -e CSV_IMPORT=false -e CRONICLE_ENABLED=true -e ROOT_PASSWORD=smoke-test "$image" >/dev/null ||
+"$docker" run -d --name "$name" -e CSV_IMPORT=false -e CRONICLE_ENABLED=true -e CRONICLE_ADMIN_PASSWORD=Cr0n-smoke -e ROOT_PASSWORD=smoke-test "$image" >/dev/null ||
   { echo "FAIL container does not start"; exit 1; }
 
 wait_for 60 "supervisord running" "pgrep -x supervisord"
@@ -33,6 +33,16 @@ wait_for 30 "sftp port 22 (proftpd)" "echo > /dev/tcp/127.0.0.1/22"
 wait_for 30 "phpMyAdmin answers (http 200)" "curl -fsS -o /dev/null http://127.0.0.1/admin/pma/"
 wait_for 30 "Adminer answers (http 200)" "curl -fsS -o /dev/null http://127.0.0.1/admin/adminer/"
 wait_for 90 "Cronicle answers on port 3012" "curl -fsS -o /dev/null http://127.0.0.1:3012/"
+login() { echo "curl -fsS -H 'Content-Type: application/json' -d '{\"username\":\"admin\",\"password\":\"$1\"}' http://127.0.0.1:3012/api/user/login | jq -e '.session_id' >/dev/null"; }
+wait_for 60 "Cronicle login with CRONICLE_ADMIN_PASSWORD" "$(login Cr0n-smoke)"
+if inside "$(login admin)"; then ko "Cronicle still accepts admin/admin"; else ok "Cronicle refuses admin/admin"; fi
+# the Cronicle daemon (process title "Cronicle Server") must not get the password in its environment
+cronicle_env=$("$docker" exec "$name" bash -c 'p=$(pgrep -x "Cronicle Server" | head -1); [ -n "$p" ] || { echo none; exit 0; }; tr "\0" "\n" < "/proc/$p/environ" | grep -c "^CRONICLE_ADMIN_PASSWORD="; exit 0' 2>/dev/null)
+case "$cronicle_env" in
+  0) ok "CRONICLE_ADMIN_PASSWORD not passed to Cronicle" ;;
+  none) ko "Cronicle Server process not found" ;;
+  *) ko "CRONICLE_ADMIN_PASSWORD visible to Cronicle" ;;
+esac
 # logins: root over ssh, a local user over ftp (list + upload) and over sftp (proftpd)
 inside "useradd -m -s /bin/bash smoke && echo 'smoke:Sm0ke-test' | chpasswd && echo hello > /tmp/smoke.txt"
 wait_for 10 "ssh login as root (port 2222)" "sshpass -p smoke-test ssh -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@127.0.0.1 true"

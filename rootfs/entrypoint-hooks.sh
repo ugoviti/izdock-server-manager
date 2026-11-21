@@ -119,7 +119,8 @@ chkService() {
   local SERVICE_VAR="$1"
   eval local SERVICE_ENABLED="\$$(echo $SERVICE_VAR)"
   eval local SERVICE_DAEMON="\$$(echo $SERVICE_VAR | sed 's/_.*//')_DAEMON"
-  local SERVICE="$(echo $SERVICE_VAR | sed 's/_.*//' | sed -e 's/\(.*\)/\L\1/')"
+  local SERVICE
+  SERVICE="$(echo $SERVICE_VAR | sed 's/_.*//' | sed -e 's/\(.*\)/\L\1/')"
   [ -z "$SERVICE_DAEMON" ] && local SERVICE_DAEMON="$SERVICE"
   if [ "$SERVICE_ENABLED" = "true" ]; then
     autostart=true
@@ -155,6 +156,7 @@ groups="$1"
 for groupname in $(echo "$groups" | sed 's/,/ /g'); do
   if ! grep -q -E "^${groupname}:" /etc/group ; then
     echo "---> creating group '$groupname'"
+    # shellcheck disable=SC2046 # the substitution adds the option and its value as two words
     groupadd $([ ! -z "$id" ] && echo "-g $id") $groupname
     else
     echo "---> not creating already existent group '$groupname'"
@@ -169,6 +171,7 @@ userAdd() {
     groupsAdd $username
     # create the basedir home directory if not exist
     [ ! -z "$home" ] && ([ ! -e "$(dirname $home)" ] && mkdir -p "$(dirname $home)")
+    # shellcheck disable=SC2046 # each substitution adds an option and its value as two words
     useradd $([ -n "$shell" ] && echo "-s $shell" || echo "-s /sbin/nologin") \
             $([ ! -z "$home" ] && echo "-d $home" || echo "-m") \
             $([ ! -z "$home" ] &&  ([ -e "$home" ] && echo "-M" || echo "-m")) \
@@ -246,7 +249,7 @@ cfgService_cron() {
   cronDir="/var/spool/cron/crontabs"
   if [ -e "$cronDir" ]; then
     if [ "$(stat -c "%U %G %a" "$cronDir")" != "root crontab 1730" ];then
-      echo "---> Fixing "$cronDir" permissions..."
+      echo "---> Fixing $cronDir permissions..."
       chown root:crontab "$cronDir"
       chmod u=rwx,g=wx,o=t "$cronDir"
     fi
@@ -295,7 +298,7 @@ cfgService_ftp() {
   echo "/sbin/nologin" >> /etc/shells
   # fix alpine proftpd
   mkdir -p /run/proftpd/
-  chown $proftpd:$proftpd /run/proftpd/
+  # (the old "chown $proftpd:$proftpd" used an unset variable and changed nothing: the directory stays root's)
   [ -f "/etc/proftpd/conf.d/sftp.conf" ] && mv /etc/proftpd/conf.d/sftp.conf /etc/proftpd/conf.d/sftp.conf-dist
 
   # tls support
@@ -634,7 +637,7 @@ HostMetadata=${ZABBIX_HOSTMETADATA}
 
 ## openvpn service
 cfgService_openvpn() {
-  local funcPH=""
+  :
   #openssl req -x509 -nodes -days 365 -newkey rsa:1024 -keyout /etc/ssl/private/vsftpd.pem -out /etc/ssl/private/vsftpd.pem
 }
 
@@ -744,6 +747,7 @@ if [ -e "/usr/sbin/dma" ]; then
   echo "MAILNAME /etc/mailname"
  }
  print_auth_conf() {
+  # shellcheck disable=SC2046 # unquoted on purpose: the parts are joined without spaces
   echo $([ ! -z "${username}" ] && echo -n "$username|")${host}$([ ! -z "${password}" ] && echo -n ":${password}|")
  }
  [ $domain ] && echo "$domain" > /etc/mailname
@@ -843,6 +847,7 @@ hooks_always() {
 echo "=> Executing $APP_DESCRIPTION configuration hooks 'always'..."
 
 # save docker variables for later usage
+# shellcheck disable=SC2034 # APP_VER is read by the eval below
 [ -e "/VERSION" ] && APP_VER="$(cat /VERSION)"
 for var in APP_NAME APP_VER APP_DESCRIPTION APP_CHART APP_RELEASE APP_NAMESPACE CUSTOMER; do eval echo $var='\"$(eval echo \$$var)\"' ; done >> /.dockerenv
 

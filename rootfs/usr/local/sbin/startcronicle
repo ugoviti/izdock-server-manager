@@ -38,6 +38,11 @@ command=$BIN_DIR/control.sh
 : ${CRONICLE_smtp_hostname:="localhost"}
 : ${CRONICLE_smtp_port:=25}
 
+# admin password of a new data volume (make_config): read here and removed from the environment,
+# because Cronicle maps every CRONICLE_* variable to its configuration
+admin_password="${CRONICLE_ADMIN_PASSWORD:-}"
+unset CRONICLE_ADMIN_PASSWORD
+
 # remove old lock file. resolves #9
 pidfile=$LOGS_DIR/cronicled.pid
 
@@ -61,13 +66,23 @@ function kill_app(){
     $command stop
     exit $?
 }
-trap "kill_app" SIGINT SIGTERM SIGKILL
+trap "kill_app" SIGINT SIGTERM
 
 make_config() {
 # Only run setup when setup needs to be done
 if [ ! -f $DATA_DIR/.setup_done ]; then
   $BIN_DIR/control.sh setup
   cp $CONF_DIR/config.json $CONF_DIR/config.json.origin
+
+  # replace the default admin/admin account of the setup (new data volumes only):
+  # CRONICLE_ADMIN_PASSWORD, or a random password printed in the log
+  if [ -n "$admin_password" ]; then
+    echo "=> Cronicle: setting the 'admin' password from CRONICLE_ADMIN_PASSWORD"
+  else
+    admin_password="$(head -c 512 /dev/urandom | tr -dc A-Za-z0-9 | head -c 16)"
+    echo "=> Cronicle: random password of the 'admin' user (set CRONICLE_ADMIN_PASSWORD to choose it): ${admin_password}"
+  fi
+  $BIN_DIR/control.sh admin admin "$admin_password" >/dev/null || echo "=> WARNING: Cronicle admin password not set"
 
   if [ -f $DATA_DIR/config.json.import ]; then
     # Move in custom configuration
@@ -101,7 +116,7 @@ fi
 sleep 2
 
 # loop while the pidfile exist and the process exist
-while [ -f $pidfile ] && kill -0 $(cat "$pidfile"); do
+while [ -f $pidfile ] && kill -0 "$(cat "$pidfile")"; do
   sleep 5
 done
 exit 255 # exit unexpected

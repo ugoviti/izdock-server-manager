@@ -18,6 +18,7 @@ elif [ -e "/usr/sbin/dma" ]; then
 fi
 
 # remove on return code 0
+# shellcheck disable=SC2064 # thismail is already set: expand it now
 trap "rm -rf ${thismail} && exit 0 || exit 1" 0
 
 # save this mail
@@ -32,19 +33,20 @@ cat - > $thismail
 
 if [ "$1" = "-q" ]
   then
-    $sendmail $*
+    $sendmail "$@"
   else
     FROM="$(echo ${BASH_ARGV[0]} | sed 's/^-f//')"
     SUBJECT="$(cat $thismail | grep ^"Subject: " | head -n1 | cut -d' ' -f2-)"
-    [ $(echo "$SUBJECT" | grep -i ^"=?utf-8?B?") ] && SUBJECT="$(echo $SUBJECT | sed -e 's/^=?utf-8?B?//i' -e 's/?=$//' | base64 -d)"
+    echo "$SUBJECT" | grep -qi ^"=?utf-8?B?" && SUBJECT="$(echo $SUBJECT | sed -e 's/^=?utf-8?B?//i' -e 's/?=$//' | base64 -d)"
     TO="$(cat $thismail | grep ^"To: " | head -n1 | cut -d' ' -f2-)"
     [ ! -z "${SCRIPT_NAME}" ] && SCRIPT="/$(basename ${SCRIPT_NAME})"
     LOG="izsendmail: uid=<${UID}> client=<${REMOTE_ADDR}> host=<${HTTP_HOST}> script=<${PWD}${SCRIPT}> from=<${FROM}> to=<${TO}> subject=<${SUBJECT}>"
     if [ "$syslog" = "yes" ]; then
 	logger -p mail.info $LOG
       else
+	# shellcheck disable=SC2046 # the redirection is added as words for eval
 	eval echo \"$(date +"%Y-%m-%d %H:%M:%S %Z") $LOG\" $([ "$docker" = "yes" ] && echo "> /proc/1/fd/1")
     fi
-    $sendmail $*
+    $sendmail "$@"
 fi < $thismail
 

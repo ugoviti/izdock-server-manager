@@ -41,11 +41,13 @@ shellcheck=$(tool shellcheck "$SHELLCHECK_VER" "$SHELLCHECK_SHA256" \
 hadolint=$(tool hadolint "$HADOLINT_VER" "$HADOLINT_SHA256" \
   "https://github.com/hadolint/hadolint/releases/download/v$HADOLINT_VER/hadolint-linux-x86_64") || exit 2
 
-# rootfs/ (the runtime entrypoint scripts) is not linted yet: legacy findings, mostly
-# false positives of the eval idioms; add it here once cleaned up
 mapfile -t sh_files < <({
   find build tools .gitea/actions -type f -name '*.sh'
   find .githooks -type f
+  # runtime scripts of the image (entrypoint and helpers, no extension)
+  echo rootfs/entrypoint.sh
+  echo rootfs/entrypoint-hooks.sh
+  find rootfs/usr/local/sbin -type f
 } | sort -u)
 
 rc=0

@@ -74,10 +74,10 @@ if [ "$MULTISERVICE" = "true" ]; then
     CMD="runsvdir -P /etc/service"
 elif [ "$APP_RUNAS" = "true" ]; then
     # run the process as user if specified
-    CMD="runuser -p -u $APP_USR -- $@"
+    CMD="runuser -p -u $APP_USR -- $*"
   else
     # run the specified command without modifications
-    CMD="$@"
+    CMD="$*"
 fi
 
 # at last if CMD_OVERRIDE is defined use it

@@ -43,14 +43,14 @@ Riferimenti:
 - [x] Remote `origin` sul nuovo Gitea dell'organizzazione `initzero` e remote `github` in sola lettura (push disattivato): niente push manuali su GitHub, ci pensa la CI
 - [x] Repository `izdock-server-manager` presente sul Gitea dell'organizzazione `initzero`
 - [ ] Actions abilitate sul repository Gitea
-- [ ] GitHub ha un branch spurio chiamato `HEAD` (commit `0c7dfbb`): verificare e cancellarlo
+- [ ] GitHub ha un branch spurio chiamato `HEAD`: è un residuo del 17/11/2021 (commit `0c7dfbb`, «synbak 3.8.3»), già contenuto in `main`; da cancellare
 - [ ] Verificare che `GH_PUSH_TOKEN` dell'organizzazione abbia Contents: Read and write anche su `ugoviti/izdock-server-manager`; se non lo ha, creare un secret di repository con lo stesso nome
 - [ ] Verificare che `PACKAGES_USERNAME` possa scrivere i pacchetti di `initzero` (team con Packages: Write)
 - [ ] (opzionale) `DOCKERHUB_README_TOKEN` (Read, Write, Delete) per aggiornare la descrizione su Docker Hub; senza, si prova con `DOCKER_PASSWORD`
 - [ ] (opzionale) `GITLEAKS_CONFIG` con le regole private, come negli altri repo izdock
 - [ ] (opzionale) `UPDATES_TOKEN`: senza, le PR settimanali aperte con il token automatico potrebbero non avviare la build di controllo
 - [ ] Primo run verde di `server-manager-build` sul runner (smoke test compreso: il runner deve poter avviare container), notifica Matrix ricevuta, tag `2.0.0`, `2.0`, `2`, `2.0.0-<run>` e `latest` su Docker Hub
-- [ ] Abilitare l'hook locale nel clone: `git config core.hooksPath .githooks`
+- [x] Hook locale abilitato nel clone (`git config core.hooksPath .githooks`)
 
 ## Fase 1 — Hotfix su bullseye
 
@@ -92,8 +92,8 @@ Script:
 - [x] Logica d'installazione in `build/install.sh`, controllata da shellcheck
 - [x] `tools/lint.sh` (shellcheck + hadolint con versioni fissate) come primo passo di `server-manager-build`
 - [x] `tools/make-updates.sh` (report e `--apply`, resta sulla stessa versione principale) e workflow settimanale `server-manager-updates` che apre una PR con `versions.env` aggiornato
-- [ ] Lint di `rootfs/` (entrypoint): oggi escluso da `tools/lint.sh` per i molti avvisi storici
-- [ ] Cronicle crea l'utente `admin` con password `admin` al primo avvio: cambiarla dopo il deploy, oppure impostarla da variabile d'ambiente nell'entrypoint
+- [x] Lint di `rootfs/` (entrypoint e script in `/usr/local/sbin`) in `tools/lint.sh`: corretti due bug (`izcertbot` non impostava mai l'email predefinita; `chown` su una variabile mai definita) e gli avvisi di quoting; le divisioni in parole volute sono eccezioni motivate
+- [x] Cronicle: su un volume dati nuovo la password di `admin` è `CRONICLE_ADMIN_PASSWORD` o una casuale stampata nel log (non più `admin`/`admin`); la variabile non arriva al processo di Cronicle; i volumi esistenti tengono le loro password
 
 ## Fase 4 — Test prima del rilascio della versione trixie
 
@@ -105,6 +105,7 @@ Fatti in locale con podman sull'immagine 2.0.0 (21/11/2026):
 - [x] `mail()` di PHP accettato da `izsendmail`/dma
 - [x] client MySQL 8.4 (`mysql`, `mysqldump`) e `mysqli` di PHP verso MySQL 8.4 e MariaDB 10.11
 - [x] Zabbix agent2 e NRPE si avviano da supervisor
+- [x] Import di utenti e gruppi da CSV (uid, gruppi, home, shell), login FTP e SSH degli utenti importati
 - [x] Nessun programma di supervisor in FATAL con la configurazione predefinita; lo stop del container avviene in pochi secondi
 
 Da fare con l'ambiente reale:

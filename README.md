@@ -108,6 +108,11 @@ Example:
 
 # Environment variables
 
+## Cronicle admin user
+On a new Cronicle data volume (`/usr/local/cronicle/data`) the `admin` user gets the password of
+`CRONICLE_ADMIN_PASSWORD`, or a random one printed in the container log when the variable is empty
+(Cronicle itself would create `admin`/`admin`). Existing data volumes keep their users and passwords.
+
 Follow all usable runtime environment variables with default values
 
 ```
