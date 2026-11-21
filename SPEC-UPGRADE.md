@@ -42,14 +42,14 @@ Riferimenti:
 - [x] Branch principale rinominato da `master` a `main`: in locale, sul Gitea e su GitHub (branch predefinito `main` su entrambi), e nei workflow
 - [x] Remote `origin` sul nuovo Gitea dell'organizzazione `initzero` e remote `github` in sola lettura (push disattivato): niente push manuali su GitHub, ci pensa la CI
 - [x] Repository `izdock-server-manager` presente sul Gitea dell'organizzazione `initzero`
-- [ ] Actions abilitate sul repository Gitea
+- [x] Actions abilitate sul repository Gitea
 - [ ] GitHub ha un branch spurio chiamato `HEAD`: è un residuo del 17/11/2021 (commit `0c7dfbb`, «synbak 3.8.3»), già contenuto in `main`; da cancellare
-- [ ] Verificare che `GH_PUSH_TOKEN` dell'organizzazione abbia Contents: Read and write anche su `ugoviti/izdock-server-manager`; se non lo ha, creare un secret di repository con lo stesso nome
-- [ ] Verificare che `PACKAGES_USERNAME` possa scrivere i pacchetti di `initzero` (team con Packages: Write)
-- [ ] (opzionale) `DOCKERHUB_README_TOKEN` (Read, Write, Delete) per aggiornare la descrizione su Docker Hub; senza, si prova con `DOCKER_PASSWORD`
+- [x] `GH_PUSH_TOKEN` dell'organizzazione può scrivere su `ugoviti/izdock-server-manager` (run #1: commit `9cdccbe` pushato su GitHub `main`)
+- [x] `PACKAGES_USERNAME` scrive i pacchetti di `initzero` (run #1: immagine e cache sul registry Gitea)
+- [x] Descrizione su Docker Hub aggiornata dal README con `DOCKER_PASSWORD`: `DOCKERHUB_README_TOKEN` non serve
 - [ ] (opzionale) `GITLEAKS_CONFIG` con le regole private, come negli altri repo izdock
 - [ ] (opzionale) `UPDATES_TOKEN`: senza, le PR settimanali aperte con il token automatico potrebbero non avviare la build di controllo
-- [ ] Primo run verde di `server-manager-build` sul runner (smoke test compreso: il runner deve poter avviare container), notifica Matrix ricevuta, tag `2.0.0`, `2.0`, `2`, `2.0.0-<run>` e `latest` su Docker Hub
+- [x] Primo run verde di `server-manager-build` (run #1 del 21/11/2026): lint, build, 74 controlli OK tra verifica e smoke test, gitleaks, notifiche Matrix inviate, tag `2.0.0`, `2.0`, `2`, `2.0.0-1` e `latest` su Docker Hub (`1`, `1.14` restano sulla 1.14.2)
 - [x] Hook locale abilitato nel clone (`git config core.hooksPath .githooks`)
 
 ## Fase 1 — Hotfix su bullseye
