@@ -14,8 +14,12 @@ cmd() { local c; for c in "$@"; do if command -v "$c" >/dev/null 2>&1; then ok "
 src=/usr/src/server-manager
 [ -r "$src/versions.env" ] || { ko "$src/versions.env missing"; exit 1; }
 # shellcheck source=build/lib.sh
-. "$src/lib.sh"
+. "$src/build/lib.sh"
 load_versions "$src/versions.env"
+
+# base image: the Debian release of versions.env
+codename=$(. /etc/os-release && echo "${VERSION_CODENAME:-}")
+if [ "$codename" == "$DEBIAN_CODENAME" ]; then ok "Debian $codename $(cat /etc/debian_version)"; else ko "Debian '$codename', expected $DEBIAN_CODENAME"; fi
 
 # image version: APP_VER of the image and of versions.env agree with the one CI built
 expected=${APP_VER_EXPECTED:-}
@@ -24,7 +28,7 @@ if [ "${APP_VER:-}" == "$expected" ]; then ok "APP_VER=$APP_VER"; else ko "APP_V
 
 # services and tools started by supervisord or used by the entrypoint
 cmd tini supervisord rsyslogd cron sshd proftpd apache2ctl php openvpn nrpe zabbix_agent2 \
-  certbot dma mysql mysqldump psql node npm gcsfuse synbak izmysqlsync izmysqlrestore mysqltuner.pl
+  certbot dma mysql mysqldump psql node npm gcsfuse 7z synbak izmysqlsync izmysqlrestore mysqltuner.pl
 
 # Node.js major (NodeSource repository of NODEJS_VERSION)
 node_ver=$(node -v 2>/dev/null | sed 's/^v//')
@@ -33,9 +37,15 @@ if [ "${node_ver%%.*}" == "$NODEJS_VERSION" ]; then ok "node $node_ver"; else ko
 # Cronicle
 cronicle=/usr/local/cronicle
 has "$cronicle/bin/control.sh"
-cronicle_ver=$(sed -n 's/^ *"version": *"\([^"]*\)".*/\1/p' "$cronicle/package.json" 2>/dev/null | head -1)
+cronicle_ver=$(jq -r '.version // empty' "$cronicle/package.json" 2>/dev/null)
 if [ "$cronicle_ver" == "$CRONICLE_VERSION" ]; then ok "Cronicle $cronicle_ver"; else ko "Cronicle '$cronicle_ver', expected $CRONICLE_VERSION"; fi
 has "$cronicle/htdocs/index.html" "Cronicle built (htdocs)"
+
+# gcsfuse and MySQL client
+gcs=$(gcsfuse --version 2>/dev/null | head -1)
+if [[ "$gcs" == *"version $GCSFUSE_VERSION"* ]]; then ok "$gcs"; else ko "gcsfuse '$gcs', expected $GCSFUSE_VERSION"; fi
+my=$(mysql --version 2>/dev/null)
+if [[ "$my" == *" ${MYSQL_SERIES%%-*}."* ]]; then ok "$my"; else ko "mysql '$my', expected ${MYSQL_SERIES%%-*}.x"; fi
 
 # Zabbix agent 2 release
 zbx=$(zabbix_agent2 -V 2>/dev/null | head -1)
@@ -47,9 +57,11 @@ has "$pma/index.php" "phpMyAdmin"
 if grep -qs "VERSION = '$PMA_VERSION'" "$pma/libraries/classes/Version.php"; then ok "phpMyAdmin $PMA_VERSION"; else ko "phpMyAdmin is not $PMA_VERSION"; fi
 if grep -qs "version=$ADMINER_VERSION" /var/www/html/admin/adminer/index.php; then ok "Adminer $ADMINER_VERSION"; else ko "Adminer is not $ADMINER_VERSION"; fi
 
-# PHP: the php.ini edited by the entrypoint (PHP_CONF default of the Debian branch) and the modules
-php_conf=$(sed -n 's/^: \${PHP_CONF:="\([^"]*\)"}.*/\1/p' /entrypoint-hooks.sh | head -1)
-if [ -n "$php_conf" ] && [ -w "$php_conf" ]; then ok "PHP_CONF $php_conf"; else ko "PHP_CONF '$php_conf' of /entrypoint-hooks.sh not found (PHP $(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;' 2>/dev/null))"; fi
+# PHP: the php.ini edited by the entrypoint (the one of the installed PHP, never a fixed version)
+mapfile -t php_ini < <(ls -1 /etc/php/*/apache2/php.ini 2>/dev/null)
+php_ver=$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;' 2>/dev/null)
+if [ "${#php_ini[@]}" -eq 1 ] && [ "${php_ini[0]}" == "/etc/php/$php_ver/apache2/php.ini" ]; then ok "PHP $php_ver ${php_ini[0]}"; else ko "PHP $php_ver: apache2 php.ini '${php_ini[*]}'"; fi
+if grep -qE '^: \$\{PHP_CONF:="/etc/php/[0-9]' /entrypoint-hooks.sh; then ko "/entrypoint-hooks.sh has a fixed PHP_CONF version"; else ok "PHP_CONF not fixed in /entrypoint-hooks.sh"; fi
 mods=$(php -m 2>/dev/null)
 for m in mysqli pdo_mysql pgsql pdo_pgsql gd mbstring curl xml zip bcmath gmp bz2 json; do
   if grep -qix "$m" <<< "$mods"; then ok "php $m"; else ko "php module $m missing"; fi

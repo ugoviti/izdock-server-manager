@@ -99,7 +99,7 @@ if   [ "$OS_RELEASE" = "debian" ]; then
 : ${PMA_CONF:="$PMA_DIR/config.inc.php"}
 #: ${PMA_CONF:="/etc/phpmyadmin/config.inc.php"}
 : ${PMA_CONF_APACHE:="/etc/phpmyadmin/apache.conf"}
-: ${PHP_CONF:="/etc/php/7.4/apache2/php.ini"}
+: ${PHP_CONF:="$(ls -1 /etc/php/*/apache2/php.ini 2>/dev/null | sort -V | tail -1)"} # php.ini of the installed PHP
 : ${NRPE_CONF:="/etc/nagios/nrpe.cfg"}
 : ${NRPE_CONF_LOCAL:="/etc/nagios/nrpe_local.cfg"}
 : ${ZABBIX_CONF:="/etc/zabbix/zabbix_agent2.conf"}
@@ -393,6 +393,9 @@ cfgService_ftp() {
   ModuleControlsACLs insmod,rmmod allow user root
   ModuleControlsACLs lsmod allow user *
 
+  # Debian 13: directory listing and transfers (AllowOverwrite, UseSendfile...) are DSO modules
+  LoadModule mod_ls.c
+  LoadModule mod_xfer.c
   #LoadModule mod_ctrls_admin.c
   LoadModule mod_tls.c
   #LoadModule mod_radius.c
@@ -403,7 +406,8 @@ cfgService_ftp() {
   LoadModule mod_quotatab.c
   LoadModule mod_quotatab_file.c
   #LoadModule mod_quotatab_radius.c
-  LoadModule mod_wrap.c
+  # mod_wrap (tcp-wrappers) no longer exists in Debian 13 proftpd: use mod_wrap2 if needed
+  #LoadModule mod_wrap.c
   LoadModule mod_rewrite.c
   LoadModule mod_load.c
   LoadModule mod_ban.c
@@ -936,6 +940,11 @@ chkService NRPE_ENABLED
 chkService ZABBIX_ENABLED
 chkService OPENVPN_ENABLED
 chkService HTTPD_ENABLED
+# postfix is not installed in the image (dma is the MTA): never start it from supervisord
+if [ "$POSTFIX_ENABLED" = "true" ] && ! command -v postfix >/dev/null 2>&1; then
+  echo "=> WARNING: POSTFIX_ENABLED=true but postfix is not installed in this image (the MTA is dma): ignoring it"
+  POSTFIX_ENABLED="false"
+fi
 chkService POSTFIX_ENABLED
 chkService CRONICLE_ENABLED
 [ "${MTA_ENABLED}" = "true" ] && cfgService_mta

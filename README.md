@@ -2,15 +2,21 @@
 Production ready multi services Cloud Native Server Manager
 
 # Supported tags
--	`1.12.X-BUILD`, `1.12.X`, `1.12`, `1`, `latest`
+-	`2.0.X-BUILD`, `2.0.X`, `2.0`, `2`, `latest` (Debian 13 trixie)
+-	`1.14.2-49`, `1.14.2`, `1.14`, `1` (Debian 11 bullseye, no longer updated)
 
-Where **X** is the patch version number, and **BUILD** is the build number (look into project [Tags](/repository/docker/izdock/server-manager/tags/) page to discover the latest versions)
+Where **X** is the patch version number, and **BUILD** is the build number (look into project [Tags](https://hub.docker.com/r/izdock/server-manager/tags) page to discover the latest versions).
+Images are rebuilt every week with the latest OS security updates, so the `X.Y.Z`, `X.Y` and `X`
+tags always point to a patched image; `X.Y.Z-BUILD` never changes.
+
+Upgrading from 1.x: the base is Debian 13 (PHP 8.4, OpenSSH 10, MySQL client 8.4 LTS, Node.js 24,
+Cronicle 0.9.147). Back up the Cronicle data volume (`/usr/local/cronicle/data`) before the upgrade.
 
 # Dockerfile
 - https://github.com/ugoviti/izdock-server-manager/blob/master/Dockerfile
 
 # Features
-- Small image footprint (based on **slim** version of [Linux Debian](/_/debian/) **buster** image)
+- Based on the **slim** version of the [Debian](https://hub.docker.com/_/debian) **trixie** image (pinned by digest)
 - Many customizable variables to use
 - Using [tini](https://github.com/krallin/tini) as init process
 - Using supervisord for service management
@@ -20,11 +26,11 @@ Where **X** is the patch version number, and **BUILD** is the build number (look
   - OpenSSH (ssh server)
   - ProFTPd (ftp server)
   - Apache (web server)
-  - PHP 7.3
-  - phpMyAdmin (mysql web gui)
+  - PHP 8.4
+  - phpMyAdmin and Adminer (database web gui)
   - OpenVPN Server (VPN Server)
   - nrpe agent (Nagios agent)
-  - zabbix agent
+  - zabbix agent 2
   - cronicle (multi-server task scheduler and runner with web gui for management)
 - Automatic Users and Groups creation via external csv file
 
@@ -59,13 +65,18 @@ docker run -it --rm -p 21:21 -p 22:22 -p 80:80 -p 222:222 -e CSV_REMOVE=false -v
 
 # How to build this image
 
+Every component version and its sha256 is in
+[versions.env](https://github.com/ugoviti/izdock-server-manager/blob/master/versions.env), the single
+source of truth of the build (the base image too); the build logic is `build/install.sh`.
 ```
-docker build --pull --rm -t server-manager .
+git clone https://github.com/ugoviti/izdock-server-manager.git && cd izdock-server-manager
+tools/build.sh          # -> izdock/server-manager:local
 ```
+Inside the container the versions are in `/usr/src/server-manager/versions.env`.
 
 ## Run the local build with
 ```
-docker run -it --rm -e CSV_IMPORT=false -e CRONICLE_ENABLED=true -p 2222:2222 -p 3012:3012 --name server-manager server-manager
+docker run -it --rm -e CSV_IMPORT=false -e CRONICLE_ENABLED=true -p 2222:2222 -p 3012:3012 --name server-manager izdock/server-manager:local
 ```
 
 ## Users csv file format:
@@ -135,7 +146,7 @@ Follow all usable runtime environment variables with default values
 : ${ZABBIX_HOSTMETADATA:="Linux"}
 
 ## service name mapping
-: ${ZABBIX_DAEMON:="zabbix-agent"}
+: ${ZABBIX_DAEMON:="zabbix-agent2"}
 : ${SSH_DAEMON:="sshd"}
 : ${FTP_DAEMON:="proftpd"}
 : ${SYSLOG_DAEMON:="rsyslog"}

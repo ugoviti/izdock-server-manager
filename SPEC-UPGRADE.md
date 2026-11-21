@@ -4,108 +4,116 @@ Verifica delle versioni del 21/11/2026 e piano di upgrade. Si spunta una casella
 fatto **e** verificato (build verde, verifica dell'immagine OK, test della Fase 4 dove richiesto).
 
 Riferimenti:
-- versioni dei componenti: [versions.env](versions.env), unica fonte di verità (SSOT)
-- CI: [.gitea/workflows/build.yml](.gitea/workflows/build.yml) e [.gitea/workflows/publish.yml](.gitea/workflows/publish.yml)
-- controlli automatici sull'immagine: [.gitea/actions/build-push/verify-image.sh](.gitea/actions/build-push/verify-image.sh)
+- versioni e checksum dei componenti: [versions.env](versions.env), unica fonte di verità (SSOT)
+- logica di build: [build/install.sh](build/install.sh)
+- CI: [.gitea/workflows/build.yml](.gitea/workflows/build.yml), [.gitea/workflows/publish.yml](.gitea/workflows/publish.yml), [.gitea/workflows/updates.yml](.gitea/workflows/updates.yml)
+- controlli sull'immagine: [verify-image.sh](.gitea/actions/build-push/verify-image.sh) (dentro l'immagine) e [smoke-test.sh](.gitea/actions/build-push/smoke-test.sh) (container avviato con l'entrypoint)
 
 ## Stato rilevato (21/11/2026)
 
-| Componente | Nel progetto | Ultima / supportata | Stato |
+| Componente | Prima (1.14.2) | Ora (2.0.0) | Note |
 |---|---|---|---|
-| Debian (base) | 11 bullseye | 13.8 trixie | fuori supporto: `bullseye-security` è fermo al 12/09/2026 e i suoi pacchetti sono passati su `archive.debian.org` (404 sul mirror: la build si rompe) |
-| PHP (Debian) | 7.4 | 8.4 (trixie), 8.2 (bookworm) | fuori supporto upstream dal 2022 |
-| Node.js | 20 | 24 LTS (fino ad apr 2028), 22 LTS | fuori supporto; repo NodeSource fermo al 30/04/2026 |
-| Cronicle | 0.9.76 | 0.9.147 | dalla 0.9.129 richiede Node >= 22.12; molte correzioni di vulnerabilità |
-| MySQL client | 8.0 (`mysql-apt-config` 0.8.22) | 8.4 LTS (`mysql-apt-config` 0.8.36) | 8.0 fuori supporto da apr 2026 |
-| Repo PostgreSQL | `apt.postgresql.org` bullseye-pgdg | spostato su `apt-archive.postgresql.org` | risponde 404: la build si rompe |
-| Zabbix agent2 | 7.0, pacchetto `+debian10` | 7.0.32 LTS (`zabbix-release_latest_7.0+debian13`) | pacchetto per Debian 10 su Debian 11; c'è anche la 8.0 |
-| gcsfuse | `GCSFUSE_VERSION` 2.10.0 | 3.13.1 | la variabile non è usata: apt installa sempre l'ultima |
-| phpMyAdmin | 5.2.2 | 5.2.3 | supporta solo PHP < 8.4 |
-| Adminer | 5.0.4 | 6.3.1 | nuova versione principale |
-| synbak | 3.8.5 | 3.8.5 | aggiornato |
-| izmysqlsync, izmysqlrestore, mysqltuner | presi da `master` | — | versione non fissata, nessun checksum |
+| Debian (base) | 11 bullseye | 13.8 trixie, fissata per digest | bullseye fuori supporto; i suoi pacchetti sono passati su `archive.debian.org` (404 sul mirror: la build 1.x non funzionava più) |
+| PHP (Debian) | 7.4 | 8.4 | |
+| Node.js | 20 | 24 LTS | esiste anche la 26 LTS (vedi decisioni) |
+| Cronicle | 0.9.76 | 0.9.147 | dalla 0.9.129 richiede Node >= 22.12 |
+| MySQL client | 8.0 (`mysql-apt-config` 0.8.22) | 8.4 LTS (`mysql-apt-config` 0.8.36) | |
+| Repo PostgreSQL | bullseye-pgdg (404) | trixie-pgdg | |
+| Zabbix agent2 | 7.0, pacchetto `+debian10` | 7.0.32 LTS, pacchetto `7.0-5+debian13` | c'è anche la 8.0 |
+| gcsfuse | 2.10.0 dichiarata, non applicata | 3.13.1 fissata | |
+| phpMyAdmin | 5.2.2 | 5.2.3 | upstream la dichiara per PHP < 8.4 |
+| Adminer | 5.0.4 | 6.3.1 | |
+| synbak | 3.8.5 | 3.8.5 | |
+| izmysqlsync, izmysqlrestore, mysqltuner | da `master` | tag / commit fissati con sha256 | |
 
 ## Fase 0 — CI: da Drone a Gitea Actions
 
 - [x] Eliminata la pipeline Drone (`.drone.yml`)
-- [x] `versions.env` come SSOT: `APP_VER` (versione dell'immagine, prima era il tag git) e versioni dei componenti, letti da Dockerfile, `tools/build.sh` e CI
-- [x] `build/lib.sh` (`load_versions`), lo stesso codice nella build dell'immagine, in locale e in CI
+- [x] `versions.env` come SSOT: `APP_VER` (versione dell'immagine, prima era il tag git), immagine base e versioni dei componenti con sha256, letti da Dockerfile, `tools/build.sh` e CI
+- [x] `build/lib.sh` (`load_versions`, `base_image`, `download` con verifica sha256): lo stesso codice nella build, in locale e in CI
 - [x] `tools/build.sh`: build locale con gli stessi build-arg della CI (`DOCKER=podman` supportato)
-- [x] Workflow `server-manager-build`: build, push sul registry Gitea, verifica dell'immagine; poi publish automatico (disattivabile con la casella quando lo si lancia a mano)
+- [x] Workflow `server-manager-build`: lint, build, push sul registry Gitea, verifica e smoke test; poi publish automatico (disattivabile con la casella quando lo si lancia a mano). Sulle pull request fa solo build e verifica, senza pubblicare
 - [x] Workflow `server-manager-publish`: publish manuale con un click (default: l'ultima build, `latest`, push su GitHub)
 - [x] Logica di publish in un solo posto (`.gitea/actions/publish`): copia su Docker Hub per digest, gitleaks, push fast-forward su GitHub del commit da cui è stata costruita l'immagine
 - [x] Action condivise copiate da izdock/tomcat (stesso codice): `registry-login`, `image-tags`, `promote`, `gitleaks`, `dockerhub-readme`, `matrix-notify`
 - [x] Rebuild settimanale (lunedì) con `OS_UPDATE_STAMP` per gli aggiornamenti di sicurezza del sistema operativo
-- [x] Hook locale `.githooks/pre-commit` (gitleaks) e `.gitleaks.toml`
+- [x] Hook locale `.githooks/pre-commit` (lint + gitleaks) e `.gitleaks.toml`
+- [x] README aggiornato: tag supportati, base trixie, build con `tools/build.sh`, note di upgrade da 1.x
 - [ ] Remote `origin` sul nuovo Gitea dell'organizzazione `initzero` (oggi punta all'istanza vecchia) e remote `github` in sola lettura: niente push manuali su GitHub, ci pensa la CI
 - [ ] Repository `izdock-server-manager` presente sul Gitea dell'organizzazione `initzero`, con Actions abilitate
 - [ ] Verificare che `GH_PUSH_TOKEN` dell'organizzazione abbia Contents: Read and write anche su `ugoviti/izdock-server-manager`; se non lo ha, creare un secret di repository con lo stesso nome
 - [ ] Verificare che `PACKAGES_USERNAME` possa scrivere i pacchetti di `initzero` (team con Packages: Write)
 - [ ] (opzionale) `DOCKERHUB_README_TOKEN` (Read, Write, Delete) per aggiornare la descrizione su Docker Hub; senza, si prova con `DOCKER_PASSWORD`
 - [ ] (opzionale) `GITLEAKS_CONFIG` con le regole private, come negli altri repo izdock
-- [ ] Primo run verde di `server-manager-build` (possibile solo dopo la Fase 1 o la Fase 2), notifica Matrix ricevuta, tag `X.Y.Z`, `X.Y`, `X`, `X.Y.Z-<run>` e `latest` su Docker Hub
-- [ ] Aggiornare il README: sezione build (`tools/build.sh`) e tag supportati (oggi dice 1.12, buster, PHP 7.3)
+- [ ] (opzionale) `UPDATES_TOKEN`: senza, le PR settimanali aperte con il token automatico potrebbero non avviare la build di controllo
+- [ ] Primo run verde di `server-manager-build` sul runner (smoke test compreso: il runner deve poter avviare container), notifica Matrix ricevuta, tag `2.0.0`, `2.0`, `2`, `2.0.0-<run>` e `latest` su Docker Hub
+- [ ] Abilitare l'hook locale nel clone: `git config core.hooksPath .githooks`
 
-## Fase 1 — Hotfix su bullseye (per avere subito una build funzionante)
+## Fase 1 — Hotfix su bullseye
 
-Oggi la build si rompe già al primo `apt install`: i pacchetti di `bullseye-security` sono stati
-spostati su `archive.debian.org` e rispondono 404 su `deb.debian.org` (build locale del 21/11/2026,
-`exit status 100`). Il hotfix serve solo se occorre un'immagine bullseye prima della Fase 2; altrimenti
-conviene passare direttamente alla Fase 2.
-
-- [ ] Sorgenti apt di Debian su `archive.debian.org` (`bullseye`, `bullseye-updates`, `bullseye-security`), con `Check-Valid-Until=false`
-- [ ] Repo PostgreSQL: `https://apt-archive.postgresql.org/pub/repos/apt bullseye-pgdg main`
-- [ ] Zabbix: pacchetto `zabbix-release_7.0-5+debian11_all.deb` invece di `7.0-1+debian10`
-- [ ] Bump di `APP_VER` in `versions.env` e build verde: soluzione temporanea, la base resta fuori supporto
+Non necessaria: si è passati direttamente alla Fase 2. Serviva solo per avere un'immagine bullseye
+prima della migrazione (sorgenti apt su `archive.debian.org`, pgdg su `apt-archive.postgresql.org`,
+pacchetto Zabbix `7.0-5+debian11`).
 
 ## Fase 2 — Migrazione a Debian 13 trixie
 
 Base e repository:
-- [ ] `FROM debian:trixie-slim` (meglio fissata per digest, come izdock/tomcat)
-- [ ] Togliere `software-properties-common` (non esiste in trixie; `add-apt-repository` non è usato)
-- [ ] Sostituire `apt-key` (non c'è più in trixie) con chiavi in `/etc/apt/keyrings` e `signed-by=` per pgdg, gcsfuse, MySQL, Zabbix, NodeSource
-- [ ] Repo PostgreSQL `trixie-pgdg` (client 17 da Debian, o la versione voluta da pgdg)
+- [x] `debian:trixie-slim` fissata per digest (`DEBIAN_CODENAME`, `DEBIAN_DIGEST` in `versions.env`); la build si ferma se la release non corrisponde
+- [x] Tolto `software-properties-common` (non esiste in trixie)
+- [x] Niente più `apt-key`: chiavi in `/etc/apt/keyrings` con `signed-by=` per pgdg, gcsfuse e NodeSource; MySQL e Zabbix installano il proprio keyring
+- [x] Repo PostgreSQL `trixie-pgdg`
+- [x] NodeSource configurato direttamente (niente più `curl setup_XX.x | bash`)
 
 Componenti (`versions.env`):
-- [ ] `NODEJS_VERSION=24`
-- [ ] `CRONICLE_VERSION=0.9.147` (richiede Node >= 22.12)
-- [ ] MySQL 8.4 LTS: `mysql-apt-config` 0.8.36 con `mysql-8.4-lts`; portare la versione del pacchetto in `versions.env`
-- [ ] Zabbix `zabbix-release_latest_7.0+debian13_all.deb` (valutare la 8.0 in seguito)
-- [ ] gcsfuse fissato davvero (`apt-get install gcsfuse=${GCSFUSE_VERSION}`), `GCSFUSE_VERSION=3.13.1`
-- [ ] `ADMINER_VERSION=6.3.1`
-- [ ] `PMA_VERSION=5.2.3`
-- [ ] `p7zip` → `7zip` (in trixie `p7zip` è solo un pacchetto di transizione)
+- [x] `NODEJS_VERSION=24` (verificato: node 24.22.3)
+- [x] `CRONICLE_VERSION=0.9.147`
+- [x] MySQL 8.4 LTS: `MYSQL_APT_CONFIG_VERSION=0.8.36-1`, `MYSQL_SERIES=8.4-lts` (verificato: client 8.4.13)
+- [x] Zabbix `ZABBIX_RELEASE=7.0-5` per debian13 (verificato: agent2 7.0.32)
+- [x] gcsfuse fissato davvero (`gcsfuse=${GCSFUSE_VERSION}`), 3.13.1
+- [x] `ADMINER_VERSION=6.3.1`, `PMA_VERSION=5.2.3`
+- [x] `p7zip` → `7zip`; aggiunto `iproute2` (l'entrypoint usa `ip route` per `FTP_PASV_ADDR`)
 
 Script:
-- [ ] `PHP_CONF` in `rootfs/entrypoint-hooks.sh` ricavato in automatico (`/etc/php/*/apache2/php.ini`) invece di `/etc/php/7.4/...` fisso: altrimenti i `sed` su `sendmail_path` e `auto_prepend_file` non hanno effetto e non danno errore (la verifica dell'immagine lo segnala)
-- [ ] Aggiornare `verify-image.sh` se cambiano percorsi o moduli PHP
+- [x] `PHP_CONF` ricavato dal PHP installato (`/etc/php/*/apache2/php.ini`); la verifica dell'immagine fallisce se torna una versione fissa
+- [x] proftpd 1.3.8c: caricati `mod_ls` e `mod_xfer` (in Debian 13 sono moduli DSO) e tolto `mod_wrap` (non esiste più); trovato dallo smoke test
+- [x] `verify-image.sh` aggiornato: release Debian, versioni di Node, Cronicle, MySQL, gcsfuse, Zabbix, phpMyAdmin, Adminer, moduli PHP, `apache2ctl -t`
 
 ## Fase 3 — Pulizia e riproducibilità
 
-- [ ] Togliere da supervisor gli `.ini` dei servizi non installati (`vsftpd`, `socklog`, `proxy`, `postfix`), oppure installare i programmi
-- [ ] `proxy.ini`: togliere l'host di test fisso; se il proxy serve, renderlo configurabile da variabile d'ambiente
-- [ ] izmysqlsync e izmysqlrestore da tag con sha256 in `versions.env` (come izdock/tomcat), non da `master`
-- [ ] mysqltuner da una release fissa con sha256, scaricata in https
-- [ ] synbak: valutare il download della release invece del `.deb` dentro il repo
-- [ ] Dockerfile: `ENV KEY=value` al posto di `ENV KEY value`, `COPY` al posto di `ADD`, `apt-get` al posto di `apt`, togliere i pacchetti duplicati (`php-json`, `php-mbstring`, `proftpd-mod-msg`)
-- [ ] Spostare la logica d'installazione in `build/install.sh` (come izdock/tomcat) per poterla controllare con shellcheck
-- [ ] `tools/lint.sh` (shellcheck + hadolint con versioni fissate) e workflow di lint, come izdock/tomcat
-- [ ] `tools/make-updates.sh` e workflow settimanale che apre una PR con `versions.env` aggiornato, come izdock/tomcat
+- [x] Tolti gli `.ini` di supervisor dei servizi mai installati (`vsftpd`, `socklog`, `proxy`)
+- [x] `postfix.ini` resta (lo usa `chkService`), ma con `POSTFIX_ENABLED=true` e postfix non installato l'entrypoint avvisa e non lo avvia (l'MTA è dma)
+- [x] `proxy.ini` con l'host di test fisso eliminato
+- [x] izmysqlsync (tag 2.0.4), izmysqlrestore (commit fissato: il repo non ha tag) e mysqltuner (tag 2.9.4) con sha256 in `versions.env`, scaricati in https
+- [x] synbak: le release upstream non pubblicano pacchetti, resta il `.deb` in `files/`
+- [x] Dockerfile: `ENV KEY=value`, `COPY` al posto di `ADD`, `apt-get`, pacchetti duplicati tolti, hadolint pulito
+- [x] Logica d'installazione in `build/install.sh`, controllata da shellcheck
+- [x] `tools/lint.sh` (shellcheck + hadolint con versioni fissate) come primo passo di `server-manager-build`
+- [x] `tools/make-updates.sh` (report e `--apply`, resta sulla stessa versione principale) e workflow settimanale `server-manager-updates` che apre una PR con `versions.env` aggiornato
+- [ ] Lint di `rootfs/` (entrypoint): oggi escluso da `tools/lint.sh` per i molti avvisi storici
+- [ ] Cronicle crea l'utente `admin` con password `admin` al primo avvio: cambiarla dopo il deploy, oppure impostarla da variabile d'ambiente nell'entrypoint
 
 ## Fase 4 — Test prima del rilascio della versione trixie
 
-- [ ] Backup del volume `/usr/local/cronicle/data`; con Cronicle 0.9.147 su Node 24 funzionano UI, login e job esistenti
-- [ ] SSH con le chiavi host esistenti (OpenSSH da 8.4 a 10.0); le chiavi RSA in formato PEM restano leggibili dall'SFTP di proftpd
-- [ ] FTP, FTPS e SFTP con proftpd 1.3.8c (moduli `mod_*` caricati, utenti creati dai CSV)
-- [ ] Apache con PHP 8.4: phpMyAdmin 5.2.3 (supporta ufficialmente solo PHP < 8.4) e Adminer 6.3.1 funzionano
-- [ ] Invio mail da PHP tramite `izsendmail` e `dma`
-- [ ] `mysqldump`, `izmysqlsync` e `izmysqlrestore` con il client 8.4 verso i server reali (autenticazione, opzioni)
-- [ ] Mount gcsfuse 3.x (fuse3) dentro il container
-- [ ] certbot 4.0 (`izcertbot`), OpenVPN, NRPE e Zabbix agent2 si avviano da supervisor
-- [ ] Bump di versione principale (`APP_VER=2.0.0`): l'immagine cambia base e i dati di Cronicle non tornano indietro
+Fatti in locale con podman sull'immagine 2.0.0 (21/11/2026):
+- [x] Cronicle: volume `data` creato con la 1.14.2 (Node 20, Cronicle 0.9.76) riaperto dalla 2.0.0: login admin, evento esistente presente, job eseguito con esito 0
+- [x] SSH: chiave host RSA (PEM) generata dalla 1.14.2 riusata dalla 2.0.0, servita sia da sshd (2222, OpenSSH 10) sia dall'SFTP di proftpd (22); login root con password
+- [x] FTP con login e upload, FTPS esplicito (AUTH TLS) e implicito (990), SFTP con proftpd 1.3.8c
+- [x] Apache con PHP 8.4: phpMyAdmin 5.2.3 e Adminer 6.3.1 rispondono (HTTP 200), `sendmail_path` di php.ini impostato su `izsendmail`
+- [x] `mail()` di PHP accettato da `izsendmail`/dma
+- [x] client MySQL 8.4 (`mysql`, `mysqldump`) e `mysqli` di PHP verso MySQL 8.4 e MariaDB 10.11
+- [x] Zabbix agent2 e NRPE si avviano da supervisor
+- [x] Nessun programma di supervisor in FATAL con la configurazione predefinita; lo stop del container avviene in pochi secondi
 
-## Decisioni aperte
+Da fare con l'ambiente reale:
+- [ ] Login di phpMyAdmin verso i database reali (avvisi di PHP 8.4)
+- [ ] Consegna effettiva delle mail tramite il relay configurato in `MTA_*`
+- [ ] `mysqldump`, `izmysqlsync` e `izmysqlrestore` verso i server reali (in particolare eventuali MySQL 5.7)
+- [ ] Mount gcsfuse 3.x dentro il container (richiede credenziali e `/dev/fuse`)
+- [ ] certbot 4.0 (`izcertbot`) e OpenVPN con le configurazioni reali
+- [x] Bump di versione principale: `APP_VER=2.0.0` (base nuova; i dati di Cronicle aggiornati non tornano indietro)
 
-- [ ] phpMyAdmin con PHP 8.4: (a) provarlo comunque, (b) PHP 8.3 dal repo sury su trixie, (c) restare su bookworm (PHP 8.2, LTS fino a giugno 2028). Consiglio: (a), verificandolo nella Fase 4
-- [ ] Zabbix 7.0 LTS o 8.0
-- [ ] Node 24 (consigliato, LTS più lunga) o 22
+## Decisioni
+
+- [x] phpMyAdmin con PHP 8.4: scelta (a), provarlo così com'è; funziona nello smoke test, resta da provare il login verso i database reali. Alternative: PHP 8.3 dal repo sury, o bookworm (PHP 8.2)
+- [x] Zabbix: resta sulla 7.0 LTS (`tools/make-updates.sh` segnala la 8.0)
+- [x] Node.js 24 LTS (supporto fino ad aprile 2028). È uscita anche la 26 LTS: valutarla quando Cronicle la dichiara supportata

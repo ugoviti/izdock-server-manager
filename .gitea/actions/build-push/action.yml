@@ -50,15 +50,17 @@ runs:
         . build/lib.sh
         load_versions versions.env
         : "${APP_VER:?APP_VER missing in versions.env}"
+        from=$(base_image)
         {
           echo "version=$APP_VER"
+          echo "image_from=$from"
           echo "source_tag=${APP_VER}${BUILD_NUMBER:+-$BUILD_NUMBER}"
           echo "app_build_commit=${GITHUB_SHA::7}"
           echo "app_build_date=$(date +%s)"
           # ISO week: the cached OS upgrade layer is rebuilt at least once a week
           echo "os_update_stamp=$(date -u +%G-W%V)"
         } >> "$GITHUB_OUTPUT"
-        echo "server-manager ${APP_VER}"
+        echo "server-manager ${APP_VER} from ${from}"
 
     - name: registry login
       id: login
@@ -90,6 +92,7 @@ runs:
         provenance: false
         tags: ${{ steps.tags.outputs.tags }}
         build-args: |
+          IMAGE_FROM=${{ steps.ver.outputs.image_from }}
           APP_VER=${{ steps.ver.outputs.version }}
           APP_VER_BUILD=${{ inputs.build-number }}
           APP_BUILD_COMMIT=${{ steps.ver.outputs.app_build_commit }}
@@ -113,3 +116,11 @@ runs:
         set -euo pipefail
         [ "$PUSH" != true ] || docker pull -q "$IMAGE"
         docker run -i --rm --entrypoint "" -e APP_VER_EXPECTED="$VERSION" "$IMAGE" bash -s < "$SCRIPT"
+
+    # the image started with its real entrypoint: services running and answering
+    - name: smoke test
+      shell: bash
+      env:
+        IMAGE: ${{ steps.login.outputs.image }}:${{ steps.ver.outputs.source_tag }}
+        SCRIPT: ${{ github.action_path }}/smoke-test.sh
+      run: bash "$SCRIPT" "$IMAGE"

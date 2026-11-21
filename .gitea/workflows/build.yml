@@ -1,8 +1,9 @@
 # izdock/server-manager build (Gitea Actions, replaces .drone.yml)
-# On every push to master, every Monday (weekly rebuild: OS security updates of the
+# On every push to master, on every pull request (build and verify only, nothing pushed), every Monday (weekly rebuild: OS security updates of the
 # apt upgrade layer, OS_UPDATE_STAMP=<ISO week>) and by hand (Repository > Actions > server-manager-build).
 # Version from versions.env (APP_VER, single source of truth):
-#   build   build and push to the Gitea registry, then verify the image (.gitea/actions/build-push).
+#   build   lint (tools/lint.sh), build and push to the Gitea registry, then verify the image
+#           (.gitea/actions/build-push).
 #           Nothing public is touched here.
 #   publish only if the verify passed and publish is on (always for push/schedule, the checkbox
 #           when run by hand): .gitea/actions/publish, the same logic of server-manager-publish
@@ -39,6 +40,7 @@ on:
   push:
     branches:
       - master
+  pull_request:
   schedule:
     # every Monday at 03:15 UTC
     - cron: '15 3 * * 1'
@@ -50,7 +52,8 @@ on:
         default: true
 
 concurrency:
-  group: server-manager-build
+  # pull requests run apart from the releases (and from server-manager-publish)
+  group: ${{ github.event_name == 'pull_request' && format('server-manager-pr-{0}', github.event.pull_request.number) || 'server-manager-build' }}
   cancel-in-progress: false
 
 jobs:
@@ -63,12 +66,19 @@ jobs:
       - name: checkout
         uses: actions/checkout@v4
 
+      # shellcheck and hadolint (pinned versions of tools/lint.sh): a finding stops the build
+      - name: lint
+        shell: bash
+        run: tools/lint.sh
+
       - name: build, push and verify
         id: build
         uses: ./.gitea/actions/build-push
         with:
           latest: 'true'
-          build-number: ${{ gitea.run_number }}
+          # pull request: the image is only loaded in the runner, the registry cache is read, never written
+          push: ${{ github.event_name == 'pull_request' && 'false' || 'true' }}
+          build-number: ${{ github.event_name == 'pull_request' && format('pr{0}', github.event.pull_request.number) || gitea.run_number }}
           registry-host: ${{ vars.PACKAGES_HOST || github.server_url }}
           registry-username: ${{ vars.PACKAGES_USERNAME }}
           registry-token: ${{ secrets.PACKAGES_TOKEN }}
@@ -87,7 +97,7 @@ jobs:
   # the verify passed: the same publish of server-manager-publish, on the exact tag just built
   publish:
     needs: build
-    if: github.event_name != 'workflow_dispatch' || inputs.publish == true || inputs.publish == 'true'
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.publish == true || inputs.publish == 'true')
     runs-on: ubuntu-latest
     steps:
       - name: checkout

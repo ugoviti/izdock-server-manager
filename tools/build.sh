@@ -14,8 +14,10 @@ root=$(cd "$(dirname "$0")/.." && pwd)
 . "$root/build/lib.sh"
 load_versions "$root/versions.env"
 image=${IMAGE:-izdock/server-manager:local}
-echo "building $image (APP_VER=$APP_VER)"
+from=$(base_image)
+echo "building $image (APP_VER=$APP_VER) from $from"
 exec "${DOCKER:-docker}" build \
+  --build-arg IMAGE_FROM="$from" \
   --build-arg APP_VER="$APP_VER" \
   --build-arg APP_VER_BUILD=local \
   --build-arg OS_UPDATE_STAMP="$(date -u +%G-W%V)" \
