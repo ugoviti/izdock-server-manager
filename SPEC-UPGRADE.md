@@ -58,6 +58,9 @@ Riferimenti:
   rischio di rate limit Let's Encrypt). Ora legge il CN in formato RFC2253 e accetta il dominio principale anche
   tra i SAN; `verify-image.sh` lo controlla
 
+- [x] 2.0.2: `izcertbot` creava una directory di backup vuota per ogni dominio a ogni avvio (7.909 in produzione,
+  rimosse il 22/11/2026): ora la crea `backupLetsEncrypt` solo quando sposta qualcosa; `verify-image.sh` lo controlla
+
 ## Fase 1 — Hotfix su bullseye
 
 Non necessaria: si è passati direttamente alla Fase 2. Serviva solo per avere un'immagine bullseye

@@ -22,14 +22,17 @@ certbotCmd() {
 backupLetsEncrypt() {
   if [ -e "$CERTBOT_CONFIG" ]; then
     echo "---> WARNING: Detected an old config file: moving '$CERTBOT_CONFIG' to '$CERTBOT_DIR_DOMAIN_BACKUP/renewal'"
+    mkdir -p "$CERTBOT_DIR_DOMAIN_BACKUP/renewal"
     mv "$CERTBOT_CONFIG" "$CERTBOT_DIR_DOMAIN_BACKUP/renewal"
   fi
   if [ -e "$CERTBOT_DIR_DOMAIN" ]; then
     echo "---> WARNING: Detected an old live directory: moving '$CERTBOT_DIR_DOMAIN' to '$CERTBOT_DIR_DOMAIN_BACKUP/live'"
+    mkdir -p "$CERTBOT_DIR_DOMAIN_BACKUP/live"
     mv "$CERTBOT_DIR_DOMAIN" "$CERTBOT_DIR_DOMAIN_BACKUP/live"
   fi
   if [ -e "$CERTBOT_DIR_DOMAIN_ARCHIVE" ]; then
     echo "---> WARNING: Detected an old archive directory: moving '$CERTBOT_DIR_DOMAIN_ARCHIVE' to '$CERTBOT_DIR_DOMAIN_BACKUP/archive'"
+    mkdir -p "$CERTBOT_DIR_DOMAIN_BACKUP/archive"
     mv "$CERTBOT_DIR_DOMAIN_ARCHIVE" "$CERTBOT_DIR_DOMAIN_BACKUP/archive/"
   fi
 }
@@ -80,8 +83,8 @@ cat "$1" | while read line; do
         CERTBOT_FULLCHAIN="$CERTBOT_DIR_DOMAIN/fullchain.pem"
         CERTBOT_DIR_DOMAIN_BACKUP="$CERTBOT_DIR_BACKUP/$CERTBOT_DOMAIN_MAIN-$(date +%Y%m%d-%H%M%S)"
 
-        # make directories that doesn't exist
-        [ ! -e "$CERTBOT_DIR_DOMAIN_BACKUP" ] && mkdir -p "$CERTBOT_DIR_DOMAIN_BACKUP/"{archive,live,renewal}
+        # the backup directory is made by backupLetsEncrypt only when something is moved into it
+        # (it was made for every domain at every start, also when nothing was moved: empty directories)
 
         if [ -e "$CERTBOT_FULLCHAIN" ]; then
           # RFC2253 prints "subject=CN=<name>,..." with every OpenSSL version (1.1 printed "CN = <name>"

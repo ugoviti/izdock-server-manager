@@ -86,6 +86,25 @@ izc_check() { # SUBJECT SAN MAIN -> 0 when izcertbot keeps the certificate
 if izc_check "/CN=example.com" "" example.com; then ok "izcertbot: CN of a valid certificate"; else ko "izcertbot sees a wrong CN on a valid certificate (CN=example.com)"; fi
 if izc_check "/CN=www.example.com" "DNS:example.com,DNS:www.example.com" example.com; then ok "izcertbot: main domain in the SANs"; else ko "izcertbot: main domain in the SANs not recognized"; fi
 if izc_check "/CN=other.example.org" "" example.com; then ko "izcertbot: a certificate of another domain is accepted"; else ok "izcertbot: certificate of another domain recreated"; fi
+# backupLetsEncrypt of izcertbot: no backup directory when there is nothing to move, the same
+# layout as before when there is (renewal/<domain>.conf, live/<domain>/, archive/<domain>/)
+izc_backup() { # 0 = nothing to move, 1 = config, live and archive present -> prints the backup tree
+  local t
+  t=$(mktemp -d)
+  # shellcheck disable=SC2034 # read by backupLetsEncrypt
+  CERTBOT_CONFIG="$t/renewal/ex.conf" CERTBOT_DIR_DOMAIN="$t/live/ex" CERTBOT_DIR_DOMAIN_ARCHIVE="$t/archive/ex" CERTBOT_DIR_DOMAIN_BACKUP="$t/backup/ex-1"
+  if [ "$1" = 1 ]; then mkdir -p "$t/renewal" "$t/live/ex" "$t/archive/ex"; touch "$t/renewal/ex.conf" "$t/live/ex/cert.pem" "$t/archive/ex/cert1.pem"; fi
+  eval "$(sed -n '/^backupLetsEncrypt() {/,/^}/p' /usr/local/sbin/izcertbot)"
+  backupLetsEncrypt >/dev/null
+  (cd "$t" && find backup -mindepth 1 2>/dev/null | sort | paste -sd' ' -)
+  rm -rf "$t"
+}
+if [ -z "$(izc_backup 0)" ]; then ok "izcertbot: no empty backup directory"; else ko "izcertbot: backup made with nothing to move: $(izc_backup 0)"; fi
+# and no backup directory made for every domain outside backupLetsEncrypt
+if sed '/^backupLetsEncrypt() {/,/^}/d' /usr/local/sbin/izcertbot | grep -qE '^[^#]*mkdir[^#]*CERTBOT_DIR_DOMAIN_BACKUP'; then ko "izcertbot: backup directory made for every domain"; else ok "izcertbot: backup directory made only by backupLetsEncrypt"; fi
+expected="backup/ex-1 backup/ex-1/archive backup/ex-1/archive/ex backup/ex-1/archive/ex/cert1.pem backup/ex-1/live backup/ex-1/live/ex backup/ex-1/live/ex/cert.pem backup/ex-1/renewal backup/ex-1/renewal/ex.conf"
+got=$(izc_backup 1)
+if [ "$got" == "$expected" ]; then ok "izcertbot: backup layout (renewal, live, archive)"; else ko "izcertbot: backup layout '$got'"; fi
 
 # entrypoint
 has /entrypoint.sh
