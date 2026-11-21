@@ -70,6 +70,23 @@ done
 # Apache configuration of the image
 if apache2ctl -t >/dev/null 2>&1; then ok "apache2ctl -t"; else ko "apache2ctl -t: $(apache2ctl -t 2>&1 | tail -1)"; fi
 
+# izcertbot: a valid certificate must not be seen with a wrong CN (it would be moved away and
+# requested again at every start). The check of izcertbot runs on two self-signed certificates:
+# CN equal to the main domain, and main domain only in the SANs (certbot puts the first -d in the CN)
+izc_check() { # SUBJECT SAN MAIN -> 0 when izcertbot keeps the certificate
+  local d f
+  d=$(mktemp -d); f="$d/fullchain.pem"
+  openssl req -x509 -nodes -newkey rsa:2048 -keyout "$d/k" -out "$f" -days 1 -subj "$1" ${2:+-addext "subjectAltName=$2"} >/dev/null 2>&1
+  # shellcheck disable=SC2034 # read by the lines of izcertbot evaluated below
+  CERTBOT_FULLCHAIN=$f CERTBOT_DOMAIN_MAIN=$3
+  eval "$(sed -n '/CERTBOT_CN="$(openssl/p; /CERTBOT_NAMES="$(printf/p' /usr/local/sbin/izcertbot)"
+  rm -rf "$d"
+  grep -qxF "$CERTBOT_DOMAIN_MAIN" <<< "${CERTBOT_NAMES:-}"
+}
+if izc_check "/CN=example.com" "" example.com; then ok "izcertbot: CN of a valid certificate"; else ko "izcertbot sees a wrong CN on a valid certificate (CN=example.com)"; fi
+if izc_check "/CN=www.example.com" "DNS:example.com,DNS:www.example.com" example.com; then ok "izcertbot: main domain in the SANs"; else ko "izcertbot: main domain in the SANs not recognized"; fi
+if izc_check "/CN=other.example.org" "" example.com; then ko "izcertbot: a certificate of another domain is accepted"; else ok "izcertbot: certificate of another domain recreated"; fi
+
 # entrypoint
 has /entrypoint.sh
 has /entrypoint-hooks.sh

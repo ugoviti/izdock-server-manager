@@ -53,6 +53,11 @@ Riferimenti:
 - [x] Primo run verde di `server-manager-build` (run #1 del 21/11/2026): lint, build, 74 controlli OK tra verifica e smoke test, gitleaks, notifiche Matrix inviate, tag `2.0.0`, `2.0`, `2`, `2.0.0-1` e `latest` su Docker Hub (`1`, `1.14` restano sulla 1.14.2)
 - [x] Hook locale abilitato nel clone (`git config core.hooksPath .githooks`)
 
+- [x] 2.0.1: `izcertbot` vedeva un CN sbagliato su ogni certificato con OpenSSL 3 (`subject=CN=x` invece di `CN = x`):
+  a ogni avvio spostava in backup e richiedeva di nuovo i certificati validi (19 al primo avvio in produzione,
+  rischio di rate limit Let's Encrypt). Ora legge il CN in formato RFC2253 e accetta il dominio principale anche
+  tra i SAN; `verify-image.sh` lo controlla
+
 ## Fase 1 — Hotfix su bullseye
 
 Non necessaria: si è passati direttamente alla Fase 2. Serviva solo per avere un'immagine bullseye

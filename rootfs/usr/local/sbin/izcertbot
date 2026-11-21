@@ -84,7 +84,12 @@ cat "$1" | while read line; do
         [ ! -e "$CERTBOT_DIR_DOMAIN_BACKUP" ] && mkdir -p "$CERTBOT_DIR_DOMAIN_BACKUP/"{archive,live,renewal}
 
         if [ -e "$CERTBOT_FULLCHAIN" ]; then
-          CERTBOT_CN="$(openssl x509 -noout -subject -in "$CERTBOT_FULLCHAIN" | sed 's/.*CN = //' | sed 's/\/.*$//')"
+          # RFC2253 prints "subject=CN=<name>,..." with every OpenSSL version (1.1 printed "CN = <name>"
+          # by default, 3.x prints "CN=<name>": the old parsing saw a wrong CN on every certificate)
+          CERTBOT_CN="$(openssl x509 -noout -subject -nameopt RFC2253 -in "$CERTBOT_FULLCHAIN" | sed 's/^subject=//' | tr ',' '\n' | sed -n 's/^CN=//p' | head -1)"
+          # names of the certificate: certbot puts the first valid -d domain in the CN, so the main
+          # domain can be a SAN with another CN (eg. CN=www.example.com, SAN example.com,www.example.com)
+          CERTBOT_NAMES="$(printf '%s\n' "$CERTBOT_CN"; openssl x509 -noout -ext subjectAltName -in "$CERTBOT_FULLCHAIN" 2>/dev/null | tail -n +2 | tr -d ' ' | tr ',' '\n' | sed -n 's/^DNS://p')"
           # 2592000 = 30 days
           # 1296000 = 15 days
           # 864000 = 10 days
@@ -94,7 +99,7 @@ cat "$1" | while read line; do
           THRESHOLD_RENEW=604800
           UNIXTIME_EXPIRE=$(date -d "$(openssl x509 -noout -dates -in "$CERTBOT_FULLCHAIN" | grep ^"notAfter=" | sed 's/^notAfter=//')" +%s)
           UNIXTIME_RENEW=$(echo "$(date +%s) + $THRESHOLD_RENEW" | bc)
-          if [ "$CERTBOT_CN" != "$CERTBOT_DOMAIN_MAIN" ]; then
+          if ! grep -qxF "$CERTBOT_DOMAIN_MAIN" <<< "$CERTBOT_NAMES"; then
               echo "---> INFO: Certificate already exist with a wrong CN ($CERTBOT_CN) ricreating it for new CN ($CERTBOT_DOMAIN_MAIN)"
               backupLetsEncrypt
               certbotCmd
