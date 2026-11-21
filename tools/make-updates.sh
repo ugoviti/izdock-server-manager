@@ -133,9 +133,10 @@ lines=$(fetch https://repo.zabbix.com/zabbix/ | grep -oE 'href="[0-9]+\.[0-9]+/"
 lookup ZABBIX_RELEASE "$ZABBIX_RELEASE" "$new" "repo.zabbix.com" "$note" ||
   propose "ZABBIX_RELEASE=$new" "ZABBIX_RELEASE_SHA256=$(sha_of "${pool}zabbix-release_${new}+debian${debian_major}_all.deb")"
 
-# --- MySQL apt config package
-new=$(fetch https://repo.mysql.com/ | grep -oE 'mysql-apt-config_[0-9.]+-[0-9]+_all\.deb' |
-  sed -E 's/^mysql-apt-config_(.*)_all\.deb$/\1/' | sort -uV | tail -1 || true) note=''
+# --- MySQL apt config package: the apt index of the MySQL repository for this codename
+# (the download page of repo.mysql.com lags behind)
+new=$( (fetch "https://repo.mysql.com/apt/debian/dists/$DEBIAN_CODENAME/mysql-apt-config/binary-amd64/Packages" || true) |
+  awk '/^Package: mysql-apt-config$/{f=1} f&&/^Version:/{print $2; f=0}' | sort -V | tail -1) note=''
 apply_pin MYSQL_APT_CONFIG_VERSION
 lookup MYSQL_APT_CONFIG_VERSION "$MYSQL_APT_CONFIG_VERSION" "$new" "repo.mysql.com" "series mysql-$MYSQL_SERIES${note:+, $note}" ||
   propose "MYSQL_APT_CONFIG_VERSION=$new" "MYSQL_APT_CONFIG_SHA256=$(sha_of "https://repo.mysql.com/mysql-apt-config_${new}_all.deb")"
