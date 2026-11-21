@@ -1,0 +1,147 @@
+name: publish
+description: >-
+  Single source of truth of the publish, used by server-manager-build (automatic, after the verify)
+  and by server-manager-publish (manual): copy an image already built and verified in the Gitea
+  registry to Docker Hub by digest, then gitleaks and the fast-forward push of the commit it was
+  built from to GitHub. Requires a checkout with fetch-depth 0.
+
+# The source can be any tag of the Gitea registry (latest, 1.14.3, 1.14.3-57): version, build
+# number and commit are read from the image itself (APP_VER, APP_VER_BUILD, APP_BUILD_COMMIT set
+# by the build) and the copy is made by digest, so the tags always match what was verified.
+
+inputs:
+  source:
+    description: Tag of the Gitea registry to publish (latest = the last build, or eg. 1.14.3-57)
+    default: latest
+  latest:
+    description: "'true' or 'false': also move the latest Docker tag"
+    default: 'true'
+  github:
+    description: "'true' or 'false': after Docker Hub, gitleaks and push the commit of the image to GitHub"
+    default: 'true'
+  registry-host:
+    description: Gitea registry host or URL (vars.PACKAGES_HOST || github.server_url)
+    required: true
+  registry-repository:
+    default: initzero/server-manager
+  registry-username:
+    required: true
+  registry-token:
+    required: true
+  dockerhub-username:
+    required: true
+  dockerhub-password:
+    required: true
+  dockerhub-image:
+    default: izdock/server-manager
+  gh-push-token:
+    description: GitHub fine-grained token, Contents Read and write on the public repository
+    default: ''
+  public-repo-url:
+    default: https://github.com/ugoviti/izdock-server-manager.git
+  public-branch:
+    default: master
+  gitleaks-config:
+    description: Private gitleaks rules (secrets.GITLEAKS_CONFIG), empty = .gitleaks.toml only
+    default: ''
+
+outputs:
+  version:
+    description: APP_VER of the published image
+    value: ${{ steps.src.outputs.version }}
+  build:
+    description: APP_VER_BUILD of the published image (may be empty)
+    value: ${{ steps.src.outputs.build }}
+  commit:
+    description: Commit the image was built from (pushed to GitHub)
+    value: ${{ steps.src.outputs.commit }}
+  tags:
+    description: Docker Hub tags written, newline separated
+    value: ${{ steps.promote.outputs.tags }}
+
+runs:
+  using: composite
+  steps:
+    - name: registry login
+      id: login
+      uses: ./.gitea/actions/registry-login
+      with:
+        registry-host: ${{ inputs.registry-host }}
+        registry-repository: ${{ inputs.registry-repository }}
+        registry-username: ${{ inputs.registry-username }}
+        registry-token: ${{ inputs.registry-token }}
+        dockerhub-username: ${{ inputs.dockerhub-username }}
+        dockerhub-password: ${{ inputs.dockerhub-password }}
+
+    # version, build number and commit from the image, digest of the tag
+    - name: resolve source
+      id: src
+      shell: bash
+      env:
+        SRC: ${{ steps.login.outputs.image }}:${{ inputs.source }}
+        PUBLISH_GITHUB: ${{ inputs.github }}
+      run: |
+        set -euo pipefail
+        digest=$(docker buildx imagetools inspect "$SRC" --format '{{json .Manifest}}' | jq -r '.digest // empty')
+        [ -n "$digest" ] || { echo "::error::tag ${SRC##*:} not found in the Gitea registry"; exit 1; }
+        # one image: .Image is its config; an index: a map platform -> config
+        envs=$(docker buildx imagetools inspect "$SRC" --format '{{json .Image}}' |
+               jq -r 'if has("config") then .config.Env else (.["linux/amd64"] // first(.[])).config.Env end | .[]')
+        version=$(sed -n 's/^APP_VER=//p' <<< "$envs")
+        build=$(sed -n 's/^APP_VER_BUILD=//p' <<< "$envs")
+        commit=$(sed -n 's/^APP_BUILD_COMMIT=//p' <<< "$envs")
+        if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+          echo "::error::APP_VER of ${SRC##*:} is '$version': not an image of server-manager-build"; exit 1
+        fi
+        [[ "$build" =~ ^[0-9]+$ ]] || build=''
+        echo "${SRC##*:} = ${version}${build:+-$build} commit ${commit:-?} ($digest)"
+        # inputs.github may arrive as a boolean or a string: the step output is always 'true'/'false'
+        case "$PUBLISH_GITHUB" in true|True|TRUE|1) github=true ;; *) github=false ;; esac
+        {
+          echo "github=$github"
+          echo "version=$version"
+          echo "build=$build"
+          echo "commit=$commit"
+          echo "ref=${SRC%:*}@$digest"
+        } >> "$GITHUB_OUTPUT"
+
+    - name: promote to docker hub
+      id: promote
+      uses: ./.gitea/actions/promote
+      with:
+        source: ${{ steps.src.outputs.ref }}
+        version: ${{ steps.src.outputs.version }}
+        latest: ${{ inputs.latest }}
+        build-number: ${{ steps.src.outputs.build }}
+        dockerhub-image: ${{ inputs.dockerhub-image }}
+
+    # the code reaches GitHub only with an image that passed: gitleaks first (private rules)
+    - name: gitleaks
+      if: steps.src.outputs.github == 'true'
+      uses: ./.gitea/actions/gitleaks
+      with:
+        config: ${{ inputs.gitleaks-config }}
+
+    - name: push to github
+      if: steps.src.outputs.github == 'true'
+      shell: bash
+      env:
+        GH_PUSH_TOKEN: ${{ inputs.gh-push-token }}
+        PUBLIC_REPO_URL: ${{ inputs.public-repo-url }}
+        PUBLIC_BRANCH: ${{ inputs.public-branch }}
+        COMMIT: ${{ steps.src.outputs.commit }}
+      run: |
+        set -euo pipefail
+        [ -n "$GH_PUSH_TOKEN" ] || { echo "::error::GH_PUSH_TOKEN is empty: the commit was not pushed to GitHub"; exit 1; }
+        sha=$(git rev-parse --verify --quiet "${COMMIT:-missing}^{commit}") ||
+          { echo "::error::commit '${COMMIT}' of the image is not in this repository (checkout with fetch-depth 0)"; exit 1; }
+        # already on GitHub (eg. publishing again an older build): nothing to push
+        if git fetch -q "$PUBLIC_REPO_URL" "$PUBLIC_BRANCH" 2>/dev/null && git merge-base --is-ancestor "$sha" FETCH_HEAD; then
+          echo "commit ${sha::7} is already on GitHub ${PUBLIC_BRANCH}"
+          exit 0
+        fi
+        AUTH=$(printf 'x-access-token:%s' "$GH_PUSH_TOKEN" | base64 -w0)
+        # fast-forward only (no force): GitHub rejects a commit that does not contain its branch
+        git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${AUTH}" \
+          push "$PUBLIC_REPO_URL" "${sha}:refs/heads/${PUBLIC_BRANCH}"
+        echo "commit ${sha::7} pushed to GitHub ${PUBLIC_BRANCH}"

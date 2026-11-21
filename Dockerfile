@@ -1,7 +1,11 @@
-# docker build --pull --rm --build-arg APP_DEBUG=1 --build-arg APP_VER_BUILD=1 --build-arg APP_BUILD_COMMIT=fffffff --build-arg APP_BUILD_DATE=$(date +%s) -t server-manager .
-# docker run -it --rm --name server-manager server-manager
+# syntax=docker/dockerfile:1
+# izdock/server-manager: Cloud Native Server Manager (multi services, supervisord).
+#
+# Versions: versions.env (single source of truth), loaded by build/lib.sh inside the build.
+#   tools/build.sh          local build with the versions of versions.env (the same build args as CI)
+# CI: .gitea/workflows/build.yml (build + verify), .gitea/workflows/publish.yml (Docker Hub + GitHub)
+# docker run -it --rm --name server-manager izdock/server-manager:local
 # docker exec -it server-manager bash
-# test build
 
 ## https://hub.docker.com/_/golang
 #FROM golang:1.18.4-bullseye AS gcsfuse
@@ -10,8 +14,9 @@
 
 ## https://hub.docker.com/_/debian
 FROM debian:bullseye-slim
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-MAINTAINER Ugo Viti <ugo.viti@initzero.it>
+LABEL maintainer="Ugo Viti <ugo.viti@initzero.it>"
 
 ## Application post init exported env variables
 ENV APP_NAME          "server-manager"
@@ -20,36 +25,26 @@ ENV APP_CHART         ""
 ENV APP_RELEASE       ""
 ENV APP_NAMESPACE     ""
 
-## full app version
+## full app version (APP_VER of versions.env, passed by tools/build.sh and CI)
 ARG APP_VER
 ENV APP_VER "${APP_VER}"
 
 ## debian apt warnings workaround
 ENV DEBIAN_FRONTEND   noninteractive
 
-### addons packages versions
-## https://www.adminer.org/#download
-ENV ADMINER_VERSION   5.0.4
+### addons packages versions: versions.env (ADMINER_VERSION, PMA_VERSION, ZABBIX_VERSION,
+### NODEJS_VERSION, CRONICLE_VERSION, GCSFUSE_VERSION), shipped in /usr/src/server-manager
+COPY versions.env build/lib.sh /usr/src/server-manager/
 
-## https://www.phpmyadmin.net/downloads/
-ENV PMA_VERSION       5.2.2
-
-## https://www.zabbix.com/download_agents
-ENV ZABBIX_VERSION    7.0
-
-## https://nodejs.org/
-ENV NODEJS_VERSION    20
-
-## https://github.com/jhuckaby/Cronicle/releases
-ENV CRONICLE_VERSION  0.9.76
-
-## https://github.com/GoogleCloudPlatform/gcsfuse
-ENV GCSFUSE_VERSION   2.10.0
+## OS_UPDATE_STAMP: changes every week in CI, so the cached apt upgrade layer is rebuilt
+ARG OS_UPDATE_STAMP=""
 
 ADD files /tmp
 
 ## install packages
 RUN set -xe && \
+  echo "OS_UPDATE_STAMP=${OS_UPDATE_STAMP:-none}" && \
+  . /usr/src/server-manager/lib.sh && load_versions /usr/src/server-manager/versions.env && \
   # install curl and update ca certificates
   apt update && apt install -y --no-install-recommends curl ca-certificates apt-utils gnupg software-properties-common dirmngr && \
   update-ca-certificates && \

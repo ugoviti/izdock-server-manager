@@ -1,0 +1,79 @@
+# izdock/server-manager publish (Gitea Actions)
+# Manual: Repository > Actions > server-manager-publish > Run workflow (one click: the defaults
+# publish the last build). server-manager-build runs the same logic (.gitea/actions/publish)
+# by itself after every verified build, so this is needed only to publish a build made with
+# publish unchecked, or to move the tags back to an older build, without rebuilding (same digest
+# that was verified). Tag scheme: .gitea/actions/image-tags
+#   source latest (default) or 1.14.3-57 -> 1.14.3, 1.14, 1, 1.14.3-57 [, latest]
+# Version, build number and commit are read from the image (APP_VER, APP_VER_BUILD, APP_BUILD_COMMIT).
+# With github checked, gitleaks runs and the commit of the image is pushed to GitHub (fast-forward
+# only, skipped when GitHub already has it). Then the Docker Hub description is updated from README.md.
+#
+# Secrets and variables: see .gitea/workflows/build.yml (the same ones).
+
+name: server-manager-publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: Tag to publish, as in the Gitea registry (latest = the last build, or eg. 1.14.3-57)
+        required: true
+        default: latest
+      latest:
+        description: Also move the "latest" Docker tag
+        type: boolean
+        default: true
+      github:
+        description: Also push the commit of the image to GitHub (after gitleaks)
+        type: boolean
+        default: true
+
+concurrency:
+  group: server-manager-build
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: publish
+        id: publish
+        uses: ./.gitea/actions/publish
+        with:
+          source: ${{ inputs.source }}
+          latest: ${{ inputs.latest }}
+          github: ${{ inputs.github }}
+          registry-host: ${{ vars.PACKAGES_HOST || github.server_url }}
+          registry-username: ${{ vars.PACKAGES_USERNAME }}
+          registry-token: ${{ secrets.PACKAGES_TOKEN }}
+          dockerhub-username: ${{ secrets.DOCKER_USERNAME }}
+          dockerhub-password: ${{ secrets.DOCKER_PASSWORD }}
+          gh-push-token: ${{ secrets.GH_PUSH_TOKEN }}
+          gitleaks-config: ${{ secrets.GITLEAKS_CONFIG }}
+
+      - name: docker hub readme
+        id: readme
+        if: steps.publish.outcome == 'success'
+        continue-on-error: true
+        uses: ./.gitea/actions/dockerhub-readme
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          token: ${{ secrets.DOCKERHUB_README_TOKEN || secrets.DOCKER_PASSWORD }}
+          repository: izdock/server-manager
+
+      - name: matrix notify
+        if: always()
+        uses: ./.gitea/actions/matrix-notify
+        with:
+          status: ${{ job.status }}
+          label: publish ${{ inputs.source }} (${{ steps.publish.outputs.version }}${{ steps.publish.outputs.build && format('-{0}', steps.publish.outputs.build) || '' }}) latest:${{ inputs.latest }} github:${{ inputs.github }} readme:${{ steps.readme.outcome || 'skipped' }}
+          token: ${{ secrets.MATRIX_TOKEN }}
+          homeserver: ${{ vars.MATRIX_HOMESERVER }}
+          room-id: ${{ vars.MATRIX_ROOM_ID }}
+          user: ${{ vars.MATRIX_USERNAME }}

@@ -1,0 +1,132 @@
+# izdock/server-manager build (Gitea Actions, replaces .drone.yml)
+# On every push to master, every Monday (weekly rebuild: OS security updates of the
+# apt upgrade layer, OS_UPDATE_STAMP=<ISO week>) and by hand (Repository > Actions > server-manager-build).
+# Version from versions.env (APP_VER, single source of truth):
+#   build   build and push to the Gitea registry, then verify the image (.gitea/actions/build-push).
+#           Nothing public is touched here.
+#   publish only if the verify passed and publish is on (always for push/schedule, the checkbox
+#           when run by hand): .gitea/actions/publish, the same logic of server-manager-publish
+#           (Docker Hub by digest, gitleaks, fast-forward push of the commit to GitHub).
+# Tags (.gitea/actions/image-tags): X.Y.Z, X.Y, X, X.Y.Z-<run_number>, latest
+# To publish again (or later) an image already in the Gitea registry: server-manager-publish (manual).
+#
+# A commit message with [skip ci] starts no workflow (then run server-manager-build by hand).
+#
+# Setup: Settings > Actions of the organization (shared by its repositories);
+# a repository secret wins over the organization one with the same name.
+#   PACKAGES_HOST       variable (optional) host of the Gitea registry; default: the Gitea instance that
+#                                           runs the job (github.server_url), so the packages stay next
+#                                           to the repository. REGISTRY_HOST is not used.
+#                                           image <host>/initzero/server-manager, build cache in its buildcache tag
+#   PACKAGES_USERNAME   variable Gitea user allowed to write the packages of the owner
+#   PACKAGES_TOKEN      secret  Gitea token of that user, scope package: Read and Write
+#   DOCKER_USERNAME     secret  Docker Hub user with write access to izdock/server-manager
+#   DOCKER_PASSWORD     secret  Docker Hub personal access token, Read & Write
+#   DOCKERHUB_README_TOKEN  secret, optional  Docker Hub personal access token, Read, Write, Delete:
+#                           needed to update the repository description from README.md; without it
+#                           DOCKER_PASSWORD is tried
+#   GH_PUSH_TOKEN       secret  GitHub fine-grained token with Contents: Read and write on
+#                               ugoviti/izdock-server-manager
+#   MATRIX_TOKEN        secret  access token of the Matrix bot (the homeserver has no password login)
+#   MATRIX_HOMESERVER, MATRIX_ROOM_ID, MATRIX_USERNAME   variables  Matrix homeserver (or its domain: .well-known is followed), room id, bot user id
+#   GITLEAKS_CONFIG     secret, optional  private gitleaks rules (TOML) extending the repository ones:
+#                                           [extend] path = ".gitleaks.toml"
+# Runner label: ubuntu-latest, with Docker.
+
+name: server-manager-build
+
+on:
+  push:
+    branches:
+      - master
+  schedule:
+    # every Monday at 03:15 UTC
+    - cron: '15 3 * * 1'
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: After the verify, publish on Docker Hub and push the commit to GitHub (server-manager-publish)
+        type: boolean
+        default: true
+
+concurrency:
+  group: server-manager-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.build.outputs.version }}
+      source-tag: ${{ steps.build.outputs.source-tag }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: build, push and verify
+        id: build
+        uses: ./.gitea/actions/build-push
+        with:
+          latest: 'true'
+          build-number: ${{ gitea.run_number }}
+          registry-host: ${{ vars.PACKAGES_HOST || github.server_url }}
+          registry-username: ${{ vars.PACKAGES_USERNAME }}
+          registry-token: ${{ secrets.PACKAGES_TOKEN }}
+
+      - name: matrix notify
+        if: always()
+        uses: ./.gitea/actions/matrix-notify
+        with:
+          status: ${{ job.status }}
+          label: build ${{ steps.build.outputs.source-tag || '?' }} (${{ github.event_name }})
+          token: ${{ secrets.MATRIX_TOKEN }}
+          homeserver: ${{ vars.MATRIX_HOMESERVER }}
+          room-id: ${{ vars.MATRIX_ROOM_ID }}
+          user: ${{ vars.MATRIX_USERNAME }}
+
+  # the verify passed: the same publish of server-manager-publish, on the exact tag just built
+  publish:
+    needs: build
+    if: github.event_name != 'workflow_dispatch' || inputs.publish == true || inputs.publish == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: publish
+        id: publish
+        uses: ./.gitea/actions/publish
+        with:
+          source: ${{ needs.build.outputs.source-tag }}
+          latest: 'true'
+          github: 'true'
+          registry-host: ${{ vars.PACKAGES_HOST || github.server_url }}
+          registry-username: ${{ vars.PACKAGES_USERNAME }}
+          registry-token: ${{ secrets.PACKAGES_TOKEN }}
+          dockerhub-username: ${{ secrets.DOCKER_USERNAME }}
+          dockerhub-password: ${{ secrets.DOCKER_PASSWORD }}
+          gh-push-token: ${{ secrets.GH_PUSH_TOKEN }}
+          gitleaks-config: ${{ secrets.GITLEAKS_CONFIG }}
+
+      # a failure here is reported (readme: in the notify) but does not fail the release
+      - name: docker hub readme
+        id: readme
+        continue-on-error: true
+        uses: ./.gitea/actions/dockerhub-readme
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          token: ${{ secrets.DOCKERHUB_README_TOKEN || secrets.DOCKER_PASSWORD }}
+          repository: izdock/server-manager
+
+      - name: matrix notify
+        if: always()
+        uses: ./.gitea/actions/matrix-notify
+        with:
+          status: ${{ job.status }}
+          label: publish ${{ needs.build.outputs.source-tag }} dockerhub+github readme:${{ steps.readme.outcome || 'skipped' }}
+          token: ${{ secrets.MATRIX_TOKEN }}
+          homeserver: ${{ vars.MATRIX_HOMESERVER }}
+          room-id: ${{ vars.MATRIX_ROOM_ID }}
+          user: ${{ vars.MATRIX_USERNAME }}
