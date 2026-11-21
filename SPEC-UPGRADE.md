@@ -44,7 +44,7 @@ Riferimenti:
 - [x] Remote `origin` sul nuovo Gitea dell'organizzazione `initzero` e remote `github` in sola lettura (push disattivato): niente push manuali su GitHub, ci pensa la CI
 - [x] Repository `izdock-server-manager` presente sul Gitea dell'organizzazione `initzero`
 - [x] Actions abilitate sul repository Gitea
-- [ ] GitHub ha un branch spurio chiamato `HEAD`: è un residuo del 17/11/2021 (commit `0c7dfbb`, «synbak 3.8.3»), già contenuto in `main`; da cancellare
+- [x] GitHub aveva un branch spurio chiamato `HEAD`: un residuo del 17/11/2021 (commit `0c7dfbb`, «synbak 3.8.3»), già contenuto in `main`; cancellato il 21/11/2026
 - [x] `GH_PUSH_TOKEN` dell'organizzazione può scrivere su `ugoviti/izdock-server-manager` (run #1: commit `9cdccbe` pushato su GitHub `main`)
 - [x] `PACKAGES_USERNAME` scrive i pacchetti di `initzero` (run #1: immagine e cache sul registry Gitea)
 - [x] Descrizione su Docker Hub aggiornata dal README con `DOCKER_PASSWORD`: `DOCKERHUB_README_TOKEN` non serve
