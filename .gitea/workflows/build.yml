@@ -1,5 +1,5 @@
 # izdock/server-manager build (Gitea Actions, replaces .drone.yml)
-# On every push to master, on every pull request (build and verify only, nothing pushed), every Monday (weekly rebuild: OS security updates of the
+# On every push to main, on every pull request (build and verify only, nothing pushed), every Monday (weekly rebuild: OS security updates of the
 # apt upgrade layer, OS_UPDATE_STAMP=<ISO week>) and by hand (Repository > Actions > server-manager-build).
 # Version from versions.env (APP_VER, single source of truth):
 #   build   lint (tools/lint.sh), build and push to the Gitea registry, then verify the image
@@ -39,7 +39,7 @@ name: server-manager-build
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
   schedule:
     # every Monday at 03:15 UTC

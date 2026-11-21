@@ -40,7 +40,7 @@ inputs:
   public-repo-url:
     default: https://github.com/ugoviti/izdock-server-manager.git
   public-branch:
-    default: master
+    default: main
   gitleaks-config:
     description: Private gitleaks rules (secrets.GITLEAKS_CONFIG), empty = .gitleaks.toml only
     default: ''

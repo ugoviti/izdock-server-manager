@@ -13,7 +13,7 @@ Upgrading from 1.x: the base is Debian 13 (PHP 8.4, OpenSSH 10, MySQL client 8.4
 Cronicle 0.9.147). Back up the Cronicle data volume (`/usr/local/cronicle/data`) before the upgrade.
 
 # Dockerfile
-- https://github.com/ugoviti/izdock-server-manager/blob/master/Dockerfile
+- https://github.com/ugoviti/izdock-server-manager/blob/main/Dockerfile
 
 # Features
 - Based on the **slim** version of the [Debian](https://hub.docker.com/_/debian) **trixie** image (pinned by digest)
@@ -66,7 +66,7 @@ docker run -it --rm -p 21:21 -p 22:22 -p 80:80 -p 222:222 -e CSV_REMOVE=false -v
 # How to build this image
 
 Every component version and its sha256 is in
-[versions.env](https://github.com/ugoviti/izdock-server-manager/blob/master/versions.env), the single
+[versions.env](https://github.com/ugoviti/izdock-server-manager/blob/main/versions.env), the single
 source of truth of the build (the base image too); the build logic is `build/install.sh`.
 ```
 git clone https://github.com/ugoviti/izdock-server-manager.git && cd izdock-server-manager

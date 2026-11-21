@@ -39,8 +39,11 @@ Riferimenti:
 - [x] Rebuild settimanale (lunedì) con `OS_UPDATE_STAMP` per gli aggiornamenti di sicurezza del sistema operativo
 - [x] Hook locale `.githooks/pre-commit` (lint + gitleaks) e `.gitleaks.toml`
 - [x] README aggiornato: tag supportati, base trixie, build con `tools/build.sh`, note di upgrade da 1.x
-- [ ] Remote `origin` sul nuovo Gitea dell'organizzazione `initzero` (oggi punta all'istanza vecchia) e remote `github` in sola lettura: niente push manuali su GitHub, ci pensa la CI
-- [ ] Repository `izdock-server-manager` presente sul Gitea dell'organizzazione `initzero`, con Actions abilitate
+- [x] Branch principale rinominato da `master` a `main`: in locale, sul Gitea e su GitHub (branch predefinito `main` su entrambi), e nei workflow
+- [x] Remote `origin` sul nuovo Gitea dell'organizzazione `initzero` e remote `github` in sola lettura (push disattivato): niente push manuali su GitHub, ci pensa la CI
+- [x] Repository `izdock-server-manager` presente sul Gitea dell'organizzazione `initzero`
+- [ ] Actions abilitate sul repository Gitea
+- [ ] GitHub ha un branch spurio chiamato `HEAD` (commit `0c7dfbb`): verificare e cancellarlo
 - [ ] Verificare che `GH_PUSH_TOKEN` dell'organizzazione abbia Contents: Read and write anche su `ugoviti/izdock-server-manager`; se non lo ha, creare un secret di repository con lo stesso nome
 - [ ] Verificare che `PACKAGES_USERNAME` possa scrivere i pacchetti di `initzero` (team con Packages: Write)
 - [ ] (opzionale) `DOCKERHUB_README_TOKEN` (Read, Write, Delete) per aggiornare la descrizione su Docker Hub; senza, si prova con `DOCKER_PASSWORD`

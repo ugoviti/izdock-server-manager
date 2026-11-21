@@ -4,7 +4,7 @@
 # refresh the one already open. Run by .gitea/workflows/updates.yml after the checkout
 # (its token pushes the branch).
 #   GITEA_SERVER, REPO (owner/name), TOKEN   Gitea API
-#   BRANCH, BASE                             eg. auto/updates, master
+#   BRANCH, BASE                             eg. auto/updates, main
 #   REPORT                                   file with the make-updates output (PR body)
 set -Eeuo pipefail
 : "${GITEA_SERVER:?}" "${REPO:?}" "${TOKEN:?}" "${BRANCH:?}" "${BASE:?}" "${REPORT:?}"
@@ -30,7 +30,7 @@ MSG
 git push -q --force origin "HEAD:refs/heads/$BRANCH"
 
 body=$(printf '%s\n\n```\n%s\n```\n\n%s\n' \
-  "Weekly \`tools/make-updates.sh --apply\`: the checks of this pull request build and verify the image. Merge to release (bump APP_VER first if the release needs a new version; master builds and publishes)." \
+  "Weekly \`tools/make-updates.sh --apply\`: the checks of this pull request build and verify the image. Merge to release (bump APP_VER first if the release needs a new version; main builds and publishes)." \
   "$(cat "$REPORT")" \
   "New majors and pinned components (\`<NAME>_PIN\`) are never applied. Closing this PR without merging skips these versions until next week's run.")
 

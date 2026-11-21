@@ -2,10 +2,10 @@
 # Every Sunday (before the Monday rebuild) and by hand (Repository > Actions > server-manager-updates):
 #   1. tools/make-updates.sh --apply: new versions, sha256 and base image digests in versions.env
 #      (same major only; components with <NAME>_PIN are kept)
-#   2. when versions.env changed: commit on the auto/updates branch (recreated from master, force
+#   2. when versions.env changed: commit on the auto/updates branch (recreated from main, force
 #      pushed) and open its pull request, or refresh the one already open
 #   3. server-manager-build builds and verifies the image on the pull request (nothing is published); merging it releases
-#      (server-manager-build on master). Closing it skips those versions until the next run.
+#      (server-manager-build on main). Closing it skips those versions until the next run.
 #
 # Required secrets:   MATRIX_TOKEN
 # Optional secrets:   UPDATES_TOKEN  Gitea token (bot or user), scope repository: Read and Write, used to
@@ -28,7 +28,7 @@ concurrency:
 
 env:
   UPDATES_BRANCH: auto/updates
-  BASE_BRANCH: master
+  BASE_BRANCH: main
 
 jobs:
   updates:
