@@ -35,6 +35,7 @@ Riferimenti:
 - [x] Workflow `server-manager-build`: lint, build, push sul registry Gitea, verifica e smoke test; poi publish automatico (disattivabile con la casella quando lo si lancia a mano). Sulle pull request fa solo build e verifica, senza pubblicare
 - [x] Workflow `server-manager-publish`: publish manuale con un click (default: l'ultima build, `latest`, push su GitHub)
 - [x] Logica di publish in un solo posto (`.gitea/actions/publish`): copia su Docker Hub per digest, gitleaks, push fast-forward su GitHub del commit da cui è stata costruita l'immagine
+- [ ] Tag git `APP_VER` (es. `2.0.0`) creato dal publish sul commit dell'immagine, su GitHub e sul Gitea, mai spostato (con Drone lo creava a mano chi rilasciava); tag `2.0.0` della prima release da creare
 - [x] Action condivise copiate da izdock/tomcat (stesso codice): `registry-login`, `image-tags`, `promote`, `gitleaks`, `dockerhub-readme`, `matrix-notify`
 - [x] Rebuild settimanale (lunedì) con `OS_UPDATE_STAMP` per gli aggiornamenti di sicurezza del sistema operativo
 - [x] Hook locale `.githooks/pre-commit` (lint + gitleaks) e `.gitleaks.toml`

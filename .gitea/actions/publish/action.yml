@@ -2,8 +2,9 @@ name: publish
 description: >-
   Single source of truth of the publish, used by server-manager-build (automatic, after the verify)
   and by server-manager-publish (manual): copy an image already built and verified in the Gitea
-  registry to Docker Hub by digest, then gitleaks and the fast-forward push of the commit it was
-  built from to GitHub. Requires a checkout with fetch-depth 0.
+  registry to Docker Hub by digest, then gitleaks, the fast-forward push of the commit it was
+  built from to GitHub and the release tag APP_VER (GitHub and Gitea). Requires a checkout with
+  fetch-depth 0.
 
 # The source can be any tag of the Gitea registry (latest, 1.14.3, 1.14.3-57): version, build
 # number and commit are read from the image itself (APP_VER, APP_VER_BUILD, APP_BUILD_COMMIT set
@@ -123,6 +124,7 @@ runs:
         config: ${{ inputs.gitleaks-config }}
 
     - name: push to github
+      id: github
       if: steps.src.outputs.github == 'true'
       shell: bash
       env:
@@ -135,6 +137,7 @@ runs:
         [ -n "$GH_PUSH_TOKEN" ] || { echo "::error::GH_PUSH_TOKEN is empty: the commit was not pushed to GitHub"; exit 1; }
         sha=$(git rev-parse --verify --quiet "${COMMIT:-missing}^{commit}") ||
           { echo "::error::commit '${COMMIT}' of the image is not in this repository (checkout with fetch-depth 0)"; exit 1; }
+        echo "sha=$sha" >> "$GITHUB_OUTPUT"
         # already on GitHub (eg. publishing again an older build): nothing to push
         if git fetch -q "$PUBLIC_REPO_URL" "$PUBLIC_BRANCH" 2>/dev/null && git merge-base --is-ancestor "$sha" FETCH_HEAD; then
           echo "commit ${sha::7} is already on GitHub ${PUBLIC_BRANCH}"
@@ -145,3 +148,35 @@ runs:
         git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${AUTH}" \
           push "$PUBLIC_REPO_URL" "${sha}:refs/heads/${PUBLIC_BRANCH}"
         echo "commit ${sha::7} pushed to GitHub ${PUBLIC_BRANCH}"
+
+    # release tag APP_VER (eg. 2.0.0, lightweight like the old Drone tags) on the commit of the
+    # image, on GitHub and on the Gitea repository. A tag is never moved: it marks the first
+    # publish of that version (weekly rebuilds of the same version leave it where it is).
+    - name: release tag
+      if: steps.src.outputs.github == 'true'
+      shell: bash
+      env:
+        GH_PUSH_TOKEN: ${{ inputs.gh-push-token }}
+        PUBLIC_REPO_URL: ${{ inputs.public-repo-url }}
+        VERSION: ${{ steps.src.outputs.version }}
+        SHA: ${{ steps.github.outputs.sha }}
+      run: |
+        set -euo pipefail
+        [ -n "$SHA" ] || { echo "::error::no commit to tag"; exit 1; }
+        AUTH=$(printf 'x-access-token:%s' "$GH_PUSH_TOKEN" | base64 -w0)
+        github() { git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${AUTH}" "$@"; }
+        # tag WHERE REMOTE [git wrapper]: create the tag, or say where it already is
+        tag() {
+          local where=$1 remote=$2 cur; shift 2
+          cur=$("$@" ls-remote --tags "$remote" "refs/tags/$VERSION" | cut -f1)
+          if [ -z "$cur" ]; then
+            "$@" push -q "$remote" "${SHA}:refs/tags/${VERSION}" && echo "tag $VERSION created on $where at ${SHA::7}"
+          elif [ "$cur" == "$SHA" ]; then
+            echo "tag $VERSION already on $where at ${SHA::7}"
+          else
+            echo "::warning::tag $VERSION already on $where at ${cur::7}, not moved to ${SHA::7} (bump APP_VER for a new release)"
+          fi
+        }
+        tag GitHub "$PUBLIC_REPO_URL" github
+        # the Gitea repository through the credentials of the checkout: a failure is only a warning
+        tag Gitea origin git || echo "::warning::tag $VERSION not created on the Gitea repository (token of the job without write access?)"

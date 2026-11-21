@@ -7,7 +7,8 @@
 #           Nothing public is touched here.
 #   publish only if the verify passed and publish is on (always for push/schedule, the checkbox
 #           when run by hand): .gitea/actions/publish, the same logic of server-manager-publish
-#           (Docker Hub by digest, gitleaks, fast-forward push of the commit to GitHub).
+#           (Docker Hub by digest, gitleaks, fast-forward push of the commit to GitHub,
+#           release tag APP_VER on GitHub and Gitea, never moved).
 # Tags (.gitea/actions/image-tags): X.Y.Z, X.Y, X, X.Y.Z-<run_number>, latest
 # To publish again (or later) an image already in the Gitea registry: server-manager-publish (manual).
 #
